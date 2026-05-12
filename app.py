@@ -276,4 +276,4 @@ def report():
                            revenue=revenue, payment_summary=payment_summary)
 
 if __name__ == "__main__":
-    app.run(debug=False, port=8080)
+    app.run(host="0.0.0.0", debug=False, port=8080)
