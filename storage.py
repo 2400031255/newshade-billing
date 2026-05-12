@@ -3,12 +3,14 @@ import os
 from models import Customer, Bill, BillItem, Service
 from datetime import datetime
 
-CUSTOMERS_FILE = "data/customers.json"
-BILLS_FILE = "data/bills.json"
-SERVICES_FILE = "data/services.json"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR = os.path.join(BASE_DIR, "data")
+CUSTOMERS_FILE = os.path.join(DATA_DIR, "customers.json")
+BILLS_FILE = os.path.join(DATA_DIR, "bills.json")
+SERVICES_FILE = os.path.join(DATA_DIR, "services.json")
 
 def _ensure_data_dir():
-    os.makedirs("data", exist_ok=True)
+    os.makedirs(DATA_DIR, exist_ok=True)
 
 def _read_json(filepath):
     if not os.path.exists(filepath):

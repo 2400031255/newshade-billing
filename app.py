@@ -12,7 +12,7 @@ from storage import (save_customer, get_customer, get_all_customers,
 app = Flask(__name__)
 app.secret_key = "newshades-secret-2024"
 
-ADMIN_FILE = "data/admin.json"
+ADMIN_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "admin.json")
 
 def _get_admin():
     os.makedirs("data", exist_ok=True)
