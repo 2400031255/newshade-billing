@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="page-title">Daily Sales Report</h1>
+<form method="POST" class="date-form">
+  <input type="date" name="date" value="{{ date }}" required>
+  <button type="submit" class="btn btn-primary">View Report</button>
+</form>
+
+<div class="report-summary">
+  <div class="stat-card"><div class="stat-icon">🧾</div><div class="stat-value">{{ bills|length }}</div><div class="stat-label">Total Bills</div></div>
+  <div class="stat-card"><div class="stat-icon">💰</div><div class="stat-value">₹{{ "%.2f"|format(revenue) }}</div><div class="stat-label">Total Revenue</div></div>
+</div>
+
+{% if payment_summary %}
+<h3>Payment Breakdown</h3>
+<table class="data-table">
+  <thead><tr><th>Method</th><th>Amount</th></tr></thead>
+  <tbody>
+    {% for method, amount in payment_summary.items() %}
+    <tr><td>{{ method }}</td><td>₹{{ "%.2f"|format(amount) }}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+{% if bills %}
+<h3>Bills</h3>
+<table class="data-table">
+  <thead><tr><th>Bill ID</th><th>Customer</th><th>Total</th><th>Payment</th></tr></thead>
+  <tbody>
+    {% for bid, b in bills.items() %}
+    <tr>
+      <td>{{ bid }}</td>
+      <td>{{ b.customer_id }}</td>
+      <td>₹{{ "%.2f"|format(b.total) }}</td>
+      <td>{{ b.payment_method }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="empty-state">No bills found for {{ date }}.</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">Customers</h1>
+  <a href="/customers/add" class="btn btn-primary">➕ Add Customer</a>
+</div>
+{% if customers %}
+<table class="data-table">
+  <thead><tr><th>ID</th><th>Name</th><th>Phone</th><th>Visits</th><th>Action</th></tr></thead>
+  <tbody>
+    {% for c in customers %}
+    <tr>
+      <td>{{ c.customer_id }}</td>
+      <td>{{ c.name }}</td>
+      <td>{{ c.phone }}</td>
+      <td>{{ c.visit_history|length }}</td>
+      <td style="display:flex;gap:8px;">
+        <a href="/customers/{{ c.customer_id }}/history" class="btn btn-sm">View History</a>
+        {% if session.get('role') == 'admin' %}
+        <form method="POST" action="/customers/{{ c.customer_id }}/delete" onsubmit="return confirm('Delete {{ c.name }}?')">
+          <button type="submit" class="btn btn-sm" style="background:#fde8ec;color:#c0394a;border:1px solid #f5c0c8;">🗑 Delete</button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="empty-state">No customers yet. <a href="/customers/add">Add one!</a></p>
+{% endif %}
+{% endblock %}

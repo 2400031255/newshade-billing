@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="page-title">Add Customer</h1>
+<form method="POST" class="simple-form">
+  <input type="text" name="name" placeholder="Full Name" required>
+  <input type="text" name="phone" placeholder="Phone Number" required>
+  <button type="submit" class="btn btn-primary">Add Customer</button>
+  <a href="/customers" class="btn btn-secondary">Cancel</a>
+</form>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">{{ customer.name }}'s History</h1>
+  <a href="/customers" class="btn btn-secondary">← Back</a>
+</div>
+<p class="subtitle">📞 {{ customer.phone }} &nbsp;|&nbsp; {{ customer.visit_history|length }} visits</p>
+{% if customer.visit_history %}
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>Bill ID</th><th>Date</th><th>Total</th><th>Payment</th>
+      {% if session.get('role') == 'admin' %}<th>Action</th>{% endif %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for v in customer.visit_history|reverse %}
+    <tr>
+      <td>{{ v.bill_id }}</td>
+      <td>{{ v.date }}</td>
+      <td>₹{{ "%.2f"|format(v.total) }}</td>
+      <td>{{ v.payment_method }}</td>
+      {% if session.get('role') == 'admin' %}
+      <td>
+        <form method="POST" action="/customers/{{ customer.customer_id }}/history/{{ v.bill_id }}/delete"
+              onsubmit="return confirm('Delete this visit record?')">
+          <button type="submit" class="btn btn-sm" style="background:#fde8ec;color:#c0394a;border:1px solid #f5c0c8;">🗑 Delete</button>
+        </form>
+      </td>
+      {% endif %}
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="empty-state">No visits recorded yet.</p>
+{% endif %}
+{% endblock %}

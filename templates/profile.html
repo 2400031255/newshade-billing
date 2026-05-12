@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="page-title">👤 My Profile</h1>
+
+<div style="max-width:480px;">
+  <div class="profile-card">
+    <div class="profile-avatar">
+      <img src="/static/logo.jpeg" alt="Admin"/>
+      <div class="profile-name">{{ admin.username }}</div>
+      <div class="profile-role">👑 Administrator</div>
+    </div>
+
+    <form method="POST" action="/profile" class="profile-form">
+      <div class="form-group">
+        <label>Username</label>
+        <div class="input-wrap">
+          <input type="text" name="username" value="{{ admin.username }}" required/>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Current Password</label>
+        <div class="input-wrap eye-wrap">
+          <input type="password" name="current_password" placeholder="Enter current password" id="cur_pass" required/>
+          <span class="eye-btn" onclick="toggleEye('cur_pass', this)">👁</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>New Password <small style="color:#b09aaa;font-weight:300;">(leave blank to keep current)</small></label>
+        <div class="input-wrap eye-wrap">
+          <input type="password" name="new_password" placeholder="Enter new password" id="new_pass"/>
+          <span class="eye-btn" onclick="toggleEye('new_pass', this)">👁</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Confirm New Password</label>
+        <div class="input-wrap eye-wrap">
+          <input type="password" name="confirm_password" placeholder="Confirm new password" id="confirm_pass" oninput="checkMatch()"/>
+          <span class="eye-btn" onclick="toggleEye('confirm_pass', this)">👁</span>
+        </div>
+        <small id="match-msg" style="font-size:12px;margin-top:4px;display:block;"></small>
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width:100%;padding:13px;letter-spacing:2px;">Save Changes</button>
+    </form>
+  </div>
+</div>
+
+<style>
+  .profile-card {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 2px 16px rgba(61,26,58,0.1);
+    overflow: hidden;
+  }
+  .profile-avatar {
+    background: linear-gradient(135deg, #3d1a3a, #7b3f6e);
+    padding: 32px 24px;
+    text-align: center;
+  }
+  .profile-avatar img {
+    width: 80px; height: 80px;
+    border-radius: 50%; object-fit: cover;
+    border: 3px solid rgba(255,255,255,0.3);
+    margin-bottom: 12px;
+  }
+  .profile-name { font-size: 20px; font-weight: 600; color: #fdf6f0; letter-spacing: 1px; }
+  .profile-role { font-size: 12px; color: rgba(253,246,240,0.6); letter-spacing: 2px; margin-top: 4px; }
+  .profile-form { padding: 28px 24px; }
+  .profile-form .form-group { margin-bottom: 18px; }
+  .profile-form label {
+    display: block; font-size: 11px; font-weight: 500;
+    letter-spacing: 2px; text-transform: uppercase;
+    color: #8a7a85; margin-bottom: 8px;
+  }
+  .profile-form input {
+    width: 100%; padding: 12px 14px;
+    border: 1.5px solid #e8dce4; border-radius: 10px;
+    font-size: 14px; color: #1c0f1e;
+    outline: none; transition: border-color 0.2s;
+    font-family: 'Jost', sans-serif;
+  }
+  .profile-form input:focus { border-color: #7b3f6e; box-shadow: 0 0 0 3px rgba(123,63,110,0.08); }
+  .eye-wrap { position: relative; }
+  .eye-btn {
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    cursor: pointer; font-size: 16px; opacity: 0.4; user-select: none;
+    transition: opacity 0.2s;
+  }
+  .eye-btn:hover { opacity: 0.8; }
+  .profile-form input { padding-right: 40px; }
+</style>
+
+<script>
+  function toggleEye(id, el) {
+    const input = document.getElementById(id);
+    if (input.type === 'password') { input.type = 'text'; el.textContent = '🙈'; }
+    else { input.type = 'password'; el.textContent = '👁'; }
+  }
+  function checkMatch() {
+    const np = document.getElementById('new_pass').value;
+    const cp = document.getElementById('confirm_pass').value;
+    const msg = document.getElementById('match-msg');
+    if (!cp) { msg.textContent = ''; return; }
+    if (np === cp) {
+      document.getElementById('confirm_pass').className = 'pass-match';
+      msg.textContent = '✓ Passwords match'; msg.style.color = '#28a745';
+    } else {
+      document.getElementById('confirm_pass').className = 'pass-nomatch';
+      msg.textContent = '✗ Passwords do not match'; msg.style.color = '#dc3545';
+    }
+  }
+</script>
+{% endblock %}

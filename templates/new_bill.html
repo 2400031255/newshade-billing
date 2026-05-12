@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="page-title">🧾 New Bill</h1>
+<form method="POST" class="bill-form">
+  <div class="form-section">
+    <h3>Customer Details</h3>
+    <input type="text" name="phone" id="phone" placeholder="Phone Number" required pattern="[0-9]{10}" maxlength="10" oninput="validatePhone(this)" title="Enter 10 digit phone number">
+    <small id="phone-msg" style="font-size:12px;margin-top:4px;display:block;"></small>
+    <input type="text" name="name" placeholder="Name (if new customer)">
+  </div>
+
+  <div class="form-section">
+    <h3>Select Services
+      {% if session.get('role') == 'admin' %}
+      <small style="font-size:12px;color:#b09aaa;font-weight:300;margin-left:8px;">✏️ You can edit prices inline</small>
+      {% endif %}
+    </h3>
+    <div class="services-grid">
+      {% for sid, svc in services.items() %}
+      <label class="service-item">
+        <input type="checkbox" name="services" value="{{ sid }}">
+        <div class="service-info">
+          <span class="service-name">{{ svc.name }}</span>
+          <span class="service-price">₹{{ "%.2f"|format(svc.price) }}</span>
+        </div>
+        <input type="number" name="qty_{{ sid }}" value="1" min="1" class="qty-input" onclick="event.stopPropagation()">
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="form-section">
+    <h3>Discount & Payment</h3>
+    <input type="number" name="discount" placeholder="Discount %" min="0" max="100" step="0.1">
+    <select name="payment" required>
+      <option value="Cash">Cash</option>
+      <option value="Card">Card</option>
+      <option value="UPI">UPI</option>
+    </select>
+  </div>
+
+  <button type="submit" class="btn btn-primary">Generate Bill</button>
+</form>
+
+<style>
+  .price-edit-input {
+    display: block;
+    width: 90px;
+    padding: 3px 8px;
+    margin-top: 4px;
+    border: 1.5px solid #e8dce4;
+    border-radius: 6px;
+    font-size: 12px;
+    color: #3d1a3a;
+    background: #fdf6f0;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .price-edit-input:focus { border-color: #c9a96e; }
+  input.phone-valid { border-color: #28a745 !important; box-shadow: 0 0 0 3px rgba(40,167,69,0.1) !important; }
+  input.phone-invalid { border-color: #dc3545 !important; box-shadow: 0 0 0 3px rgba(220,53,69,0.1) !important; }
+</style>
+<script>
+  function validatePhone(el) {
+    el.value = el.value.replace(/[^0-9]/g, '');
+    const msg = document.getElementById('phone-msg');
+    if (el.value.length === 10) {
+      el.classList.remove('phone-invalid'); el.classList.add('phone-valid');
+      msg.textContent = '✓ Valid number'; msg.style.color = '#28a745';
+    } else {
+      el.classList.remove('phone-valid'); el.classList.add('phone-invalid');
+      msg.textContent = `✗ ${10 - el.value.length} more digit${10 - el.value.length > 1 ? 's' : ''} needed`;
+      msg.style.color = '#dc3545';
+    }
+    if (el.value.length === 0) {
+      el.classList.remove('phone-valid','phone-invalid');
+      msg.textContent = '';
+    }
+  }
+</script>
+{% endblock %}

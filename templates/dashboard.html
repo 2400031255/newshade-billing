@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="page-title">Dashboard</h1>
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-icon">👥</div>
+    <div class="stat-value">{{ total_customers }}</div>
+    <div class="stat-label">Total Customers</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">🧾</div>
+    <div class="stat-value">{{ total_bills }}</div>
+    <div class="stat-label">Bills Today</div>
+  </div>
+  {% if session.get('role') == 'admin' %}
+  <div class="stat-card">
+    <div class="stat-icon">💰</div>
+    <div class="stat-value">₹{{ "%.2f"|format(revenue) }}</div>
+    <div class="stat-label">Revenue Today</div>
+  </div>
+  {% endif %}
+</div>
+<div class="quick-actions">
+  {% if session.get('role') in ('admin', 'employee') %}
+  <a href="/bill/new" class="btn btn-primary">🧾 Create New Bill</a>
+  {% endif %}
+  {% if session.get('role') == 'admin' %}
+  <a href="/report" class="btn btn-secondary">📊 View Report</a>
+  {% endif %}
+</div>
+{% endblock %}

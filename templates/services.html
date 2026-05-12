@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="page-title">⚙️ Manage Services</h1>
+
+<div class="card-box" style="margin-bottom:24px;">
+  <h3 style="margin-bottom:16px;color:#2d1b4e;">➕ Add New Service</h3>
+  <form method="POST" action="/services/add" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+    <div class="form-group" style="margin:0;flex:2;min-width:180px;">
+      <label>Service Name</label>
+      <div class="input-wrap"><input type="text" name="name" placeholder="e.g. Hair Trim" required/></div>
+    </div>
+    <div class="form-group" style="margin:0;flex:1;min-width:120px;">
+      <label>Price (₹)</label>
+      <div class="input-wrap"><input type="number" name="price" placeholder="0.00" min="0" step="0.01" required/></div>
+    </div>
+    <button type="submit" class="btn btn-primary" style="height:44px;">Add Service</button>
+  </form>
+</div>
+
+<table class="data-table">
+  <thead>
+    <tr><th>#</th><th>Service Name</th><th>Price (₹)</th><th>Edit</th><th>Delete</th></tr>
+  </thead>
+  <tbody>
+    {% for sid, svc in services.items() %}
+    <tr id="row-{{ sid }}">
+      <td style="color:#aaa;font-size:12px;">{{ sid }}</td>
+      <td>
+        <span class="view-mode-{{ sid }}">{{ svc.name }}</span>
+        <input class="edit-mode-{{ sid }} inline-edit" type="text" value="{{ svc.name }}" style="display:none;"/>
+      </td>
+      <td>
+        <span class="view-mode-{{ sid }}">₹{{ "%.2f"|format(svc.price) }}</span>
+        <input class="edit-mode-{{ sid }} inline-edit" type="number" value="{{ svc.price }}" min="0" step="0.01" style="display:none;width:90px;"/>
+      </td>
+      <td>
+        <button class="btn btn-sm edit-btn" onclick="enableEdit('{{ sid }}')" id="edit-btn-{{ sid }}">✏️ Edit</button>
+        <form method="POST" action="/services/{{ sid }}/edit" id="edit-form-{{ sid }}" style="display:none;">
+          <input type="hidden" name="name" id="edit-name-{{ sid }}"/>
+          <input type="hidden" name="price" id="edit-price-{{ sid }}"/>
+          <button type="submit" class="btn btn-primary btn-sm">Save</button>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="cancelEdit('{{ sid }}')">Cancel</button>
+        </form>
+      </td>
+      <td>
+        <form method="POST" action="/services/{{ sid }}/delete" onsubmit="return confirm('Delete {{ svc.name }}?')">
+          <button type="submit" class="btn btn-danger btn-sm">🗑 Delete</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<style>
+  .card-box { background:#fff; padding:24px; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.08); }
+  .inline-edit { padding:6px 10px; border:1.5px solid #c9a96e; border-radius:8px; font-size:14px; outline:none; }
+  .btn-danger { background:#fde8ec; color:#c0394a; border:1px solid #f5c0c8; }
+  .btn-danger:hover { background:#f5c0c8; }
+</style>
+
+<script>
+  function enableEdit(sid) {
+    document.querySelectorAll('.view-mode-' + sid).forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.edit-mode-' + sid).forEach(el => el.style.display = 'inline-block');
+    document.getElementById('edit-btn-' + sid).style.display = 'none';
+    document.getElementById('edit-form-' + sid).style.display = 'inline-flex';
+    document.getElementById('edit-form-' + sid).style.gap = '6px';
+  }
+  function cancelEdit(sid) {
+    document.querySelectorAll('.view-mode-' + sid).forEach(el => el.style.display = '');
+    document.querySelectorAll('.edit-mode-' + sid).forEach(el => el.style.display = 'none');
+    document.getElementById('edit-btn-' + sid).style.display = '';
+    document.getElementById('edit-form-' + sid).style.display = 'none';
+  }
+  document.querySelectorAll('[id^="edit-form-"]').forEach(form => {
+    form.addEventListener('submit', function() {
+      const sid = this.id.replace('edit-form-', '');
+      const inputs = document.querySelectorAll('.edit-mode-' + sid);
+      document.getElementById('edit-name-' + sid).value = inputs[0].value;
+      document.getElementById('edit-price-' + sid).value = inputs[1].value;
+    });
+  });
+</script>
+{% endblock %}

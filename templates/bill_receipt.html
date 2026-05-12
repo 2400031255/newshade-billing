@@ -1,0 +1,267 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="receipt-page">
+
+  <div class="receipt-actions no-print">
+    <button onclick="window.print()" class="btn-print">🖨 Print Receipt</button>
+    <a href="/bill/new" class="btn-new no-print">+ New Bill</a>
+  </div>
+
+  <div class="thermal-wrap">
+    <div class="thermal-receipt" id="receipt">
+
+      <!-- Header -->
+      <div class="t-header">
+        <div class="t-logo">
+          <img src="/static/logo.jpeg" alt="Newshades Logo"/>
+        </div>
+        <div class="t-salon-name">Newshades Family Salon</div>
+        <div class="t-tagline">Look Beautiful, Feel Beautiful</div>
+        <div class="t-dots">· · · · · · · · · · · · · · · · · · · ·</div>
+        <div class="t-receipt-title">PAYMENT RECEIPT</div>
+        <div class="t-dots">· · · · · · · · · · · · · · · · · · · ·</div>
+      </div>
+
+      <!-- Bill Info -->
+      <div class="t-info">
+        <div class="t-row"><span>Bill No</span><span>{{ bill_id }}</span></div>
+        <div class="t-row"><span>Date</span><span>{{ bill['date'][:10] }}</span></div>
+        <div class="t-row"><span>Time</span><span>{{ bill['date'][11:16] }}</span></div>
+        <div class="t-row"><span>Customer</span><span>{{ customer.name if customer else 'Walk-in' }}</span></div>
+        <div class="t-row"><span>Mobile</span><span>{{ customer.phone if customer else '—' }}</span></div>
+      </div>
+
+      <div class="t-dashed"></div>
+
+      <!-- Services Table -->
+      <div class="t-table-head">
+        <span>SERVICE</span><span>AMOUNT</span>
+      </div>
+      <div class="t-dashed"></div>
+      {% set subtotal = namespace(val=0) %}
+      {% for item in bill['items'] %}
+        {% set subtotal.val = subtotal.val + (item['service_price'] * item['quantity']) %}
+        <div class="t-item">
+          <span class="t-item-name">
+            {{ item['service_name'] }}
+            {% if item['quantity'] > 1 %}<small>x{{ item['quantity'] }}</small>{% endif %}
+          </span>
+          <span class="t-item-price">₹{{ "%.0f"|format(item['service_price'] * item['quantity']) }}</span>
+        </div>
+      {% endfor %}
+
+      <div class="t-dashed"></div>
+
+      <!-- Totals -->
+      {% if bill['discount'] > 0 %}
+      <div class="t-total-row">
+        <span>Subtotal</span><span>₹{{ "%.0f"|format(subtotal.val) }}</span>
+      </div>
+      <div class="t-total-row">
+        <span>Discount ({{ bill['discount'] }}%)</span>
+        <span>- ₹{{ "%.0f"|format(subtotal.val * bill['discount'] / 100) }}</span>
+      </div>
+      {% endif %}
+
+      <div class="t-grand-line">
+        <div class="t-solid"></div>
+        <div class="t-grand">
+          <span>TOTAL AMOUNT</span><span>₹{{ "%.0f"|format(bill['total']) }}</span>
+        </div>
+        <div class="t-gst">GST INCLUDED</div>
+        <div class="t-solid"></div>
+      </div>
+
+      <!-- Payment -->
+      <div class="t-payment">
+        <div class="t-row"><span>Payment Mode</span><span>{{ bill['payment_method'] }}</span></div>
+        <div class="t-row"><span>Payment Status</span><span class="t-paid">✓ Paid</span></div>
+      </div>
+
+      <div class="t-dashed"></div>
+
+      <!-- Footer -->
+      <div class="t-footer">
+        <div class="t-thankyou">Thank You! Visit Again 😊</div>
+        <div class="t-footer-sub">Newshades Family Salon</div>
+        <div class="t-footer-sub">Look Beautiful, Feel Beautiful</div>
+        <div class="t-barcode">
+          |||  |||| ||| || |||| ||| || ||||
+        </div>
+        <div class="t-bill-mini">{{ bill_id }}</div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<style>
+  .receipt-page {
+    display: flex; flex-direction: column; align-items: center;
+    padding: 32px 16px; min-height: 100vh;
+    background: linear-gradient(135deg, #f5eff8 0%, #fdf6f0 50%, #f0eaf5 100%);
+  }
+
+  /* Action buttons */
+  .receipt-actions {
+    display: flex; gap: 12px; margin-bottom: 28px;
+  }
+  .btn-print {
+    padding: 12px 28px;
+    background: linear-gradient(135deg, #3d1a3a, #7b3f6e);
+    color: #fff; border: none; border-radius: 10px;
+    font-size: 14px; font-weight: 500; letter-spacing: 1px;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(61,26,58,0.3);
+    transition: all 0.2s;
+  }
+  .btn-print:hover { transform: translateY(-2px); box-shadow: 0 6px 28px rgba(61,26,58,0.4); }
+  .btn-new {
+    padding: 12px 24px;
+    background: #fff; color: #3d1a3a;
+    border: 1.5px solid #e8dce4; border-radius: 10px;
+    font-size: 14px; font-weight: 500; text-decoration: none;
+    transition: all 0.2s;
+  }
+  .btn-new:hover { border-color: #7b3f6e; background: #fdf6f0; }
+
+  /* Thermal wrap shadow */
+  .thermal-wrap {
+    filter: drop-shadow(0 8px 40px rgba(61,26,58,0.18));
+  }
+
+  /* Thermal receipt */
+  .thermal-receipt {
+    width: 320px;
+    background: #fff;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 12px;
+    color: #111;
+    padding: 20px 18px 28px;
+    position: relative;
+    /* Torn top edge */
+    clip-path: polygon(
+      0% 8px, 8px 0%, 16px 8px, 24px 0%, 32px 8px, 40px 0%, 48px 8px,
+      56px 0%, 64px 8px, 72px 0%, 80px 8px, 88px 0%, 96px 8px,
+      104px 0%, 112px 8px, 120px 0%, 128px 8px, 136px 0%, 144px 8px,
+      152px 0%, 160px 8px, 168px 0%, 176px 8px, 184px 0%, 192px 8px,
+      200px 0%, 208px 8px, 216px 0%, 224px 8px, 232px 0%, 240px 8px,
+      248px 0%, 256px 8px, 264px 0%, 272px 8px, 280px 0%, 288px 8px,
+      296px 0%, 304px 8px, 312px 0%, 320px 8px,
+      100% 100%, 0% 100%
+    );
+  }
+
+  /* Header */
+  .t-header { text-align: center; margin-bottom: 10px; }
+  .t-logo img {
+    width: 72px; height: 72px;
+    border-radius: 50%; object-fit: cover;
+    border: 2px solid #111;
+    margin-bottom: 8px;
+    filter: grayscale(100%) contrast(1.2);
+  }
+  .t-salon-name {
+    font-size: 15px; font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase;
+    margin-bottom: 3px;
+  }
+  .t-tagline {
+    font-size: 10px; letter-spacing: 1.5px;
+    color: #444; margin-bottom: 8px;
+    font-style: italic;
+  }
+  .t-dots { font-size: 10px; color: #888; letter-spacing: 2px; margin: 4px 0; }
+  .t-receipt-title {
+    font-size: 13px; font-weight: 700;
+    letter-spacing: 3px; margin: 6px 0;
+  }
+
+  /* Info rows */
+  .t-info { margin: 10px 0; }
+  .t-row {
+    display: flex; justify-content: space-between;
+    margin: 4px 0; font-size: 11.5px;
+  }
+  .t-row span:first-child { color: #555; }
+  .t-row span:last-child { font-weight: 600; text-align: right; max-width: 60%; }
+
+  /* Dividers */
+  .t-dashed {
+    border-top: 1px dashed #aaa;
+    margin: 8px 0;
+  }
+  .t-solid { border-top: 1.5px solid #111; margin: 6px 0; }
+
+  /* Table */
+  .t-table-head {
+    display: flex; justify-content: space-between;
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 2px; color: #333;
+    margin: 4px 0;
+  }
+  .t-item {
+    display: flex; justify-content: space-between;
+    align-items: baseline;
+    margin: 5px 0; font-size: 12px;
+  }
+  .t-item-name { flex: 1; padding-right: 8px; }
+  .t-item-name small { font-size: 10px; color: #666; margin-left: 4px; }
+  .t-item-price { font-weight: 600; white-space: nowrap; }
+
+  /* Totals */
+  .t-total-row {
+    display: flex; justify-content: space-between;
+    font-size: 11.5px; margin: 4px 0; color: #444;
+  }
+  .t-grand-line { margin: 6px 0; }
+  .t-grand {
+    display: flex; justify-content: space-between;
+    font-size: 14px; font-weight: 700;
+    letter-spacing: 0.5px; padding: 6px 0;
+  }
+  .t-gst {
+    text-align: center; font-size: 10px;
+    letter-spacing: 2px; color: #555;
+    margin-bottom: 4px;
+  }
+
+  /* Payment */
+  .t-payment { margin: 8px 0; }
+  .t-paid { color: #111; font-weight: 700; }
+
+  /* Footer */
+  .t-footer { text-align: center; margin-top: 12px; }
+  .t-thankyou {
+    font-size: 13px; font-weight: 700;
+    letter-spacing: 1px; margin-bottom: 6px;
+  }
+  .t-footer-sub { font-size: 10px; color: #555; margin: 2px 0; }
+  .t-barcode {
+    font-size: 9px; letter-spacing: 1px;
+    color: #222; margin: 12px 0 4px;
+    font-family: 'Courier New', monospace;
+  }
+  .t-bill-mini { font-size: 9px; color: #888; letter-spacing: 2px; }
+
+  /* Print styles */
+  @media print {
+    body * { visibility: hidden; }
+    .thermal-receipt, .thermal-receipt * { visibility: visible; }
+    .thermal-receipt {
+      position: fixed; top: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 80mm;
+      clip-path: none;
+      box-shadow: none;
+      padding: 4mm 4mm 8mm;
+      font-size: 11px;
+    }
+    .t-logo img { filter: grayscale(100%) contrast(1.4); }
+    .no-print { display: none !important; }
+  }
+</style>
+
+{% endblock %}
