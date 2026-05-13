@@ -3,35 +3,20 @@ from models import Customer, Bill, BillItem, Service
 from datetime import datetime
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.environ.get("SALON_DATA_DIR") or os.path.join(BASE_DIR, "data")
+DATA_DIR = os.environ.get("SALON_DATA_DIR") or os.environ.get("RENDER_DATA_DIR") or os.path.join(BASE_DIR, "data")
 CUSTOMERS_FILE = os.path.join(DATA_DIR, "customers.json")
 BILLS_FILE     = os.path.join(DATA_DIR, "bills.json")
 SERVICES_FILE  = os.path.join(DATA_DIR, "services.json")
 
-# ── MongoDB setup (used when MONGO_URI env var is set) ───────────────────────
-MONGO_URI = os.environ.get("MONGO_URI")
+# ── MongoDB setup (disabled due to SSL issues on Python 3.14) ───────────────
+MONGO_URI = None  # Disabled - using JSON file storage
 _db = None
 
 def _get_db():
-    global _db
-    if _db is None and MONGO_URI:
-        try:
-            from pymongo import MongoClient
-            import ssl
-            client = MongoClient(
-                MONGO_URI,
-                serverSelectionTimeoutMS=10000,
-                tls=True,
-                tlsAllowInvalidCertificates=True
-            )
-            _db = client["newshades_salon"]
-        except Exception as e:
-            print(f"MongoDB connection failed: {e}")
-            _db = None
-    return _db
+    return None
 
 def _use_mongo():
-    return bool(MONGO_URI) and _get_db() is not None
+    return False
 
 # ── JSON helpers (local fallback) ────────────────────────────────────────────
 
