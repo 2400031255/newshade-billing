@@ -17,9 +17,16 @@ def _get_db():
     if _db is None and MONGO_URI:
         try:
             from pymongo import MongoClient
-            client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
+            import ssl
+            client = MongoClient(
+                MONGO_URI,
+                serverSelectionTimeoutMS=10000,
+                tls=True,
+                tlsAllowInvalidCertificates=True
+            )
             _db = client["newshades_salon"]
-        except Exception:
+        except Exception as e:
+            print(f"MongoDB connection failed: {e}")
             _db = None
     return _db
 
