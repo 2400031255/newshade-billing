@@ -15,13 +15,16 @@ _db = None
 def _get_db():
     global _db
     if _db is None and MONGO_URI:
-        from pymongo import MongoClient
-        client = MongoClient(MONGO_URI)
-        _db = client["newshades_salon"]
+        try:
+            from pymongo import MongoClient
+            client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
+            _db = client["newshades_salon"]
+        except Exception:
+            _db = None
     return _db
 
 def _use_mongo():
-    return bool(MONGO_URI)
+    return bool(MONGO_URI) and _get_db() is not None
 
 # ── JSON helpers (local fallback) ────────────────────────────────────────────
 

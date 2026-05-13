@@ -16,7 +16,6 @@ app.secret_key = "newshades-secret-2024"
 ADMIN_FILE = os.path.join(os.environ.get("SALON_DATA_DIR") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "data"), "admin.json")
 
 def _get_admin():
-    from werkzeug.security import generate_password_hash
     admin = get_admin()
     if admin: return admin
     hashed = generate_password_hash("komali123")
