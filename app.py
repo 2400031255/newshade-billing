@@ -7,7 +7,8 @@ from models import Customer, Bill, BillItem
 from services import SERVICES, get_services, DEFAULTS
 from storage import (save_customer, get_customer, get_all_customers,
                      find_customer_by_phone, save_bill, get_bills_by_date,
-                     delete_customer_visit, load_services, save_services, delete_service)
+                     delete_customer_visit, load_services, save_services, delete_service,
+                     get_admin, save_admin)
 
 app = Flask(__name__)
 app.secret_key = "newshades-secret-2024"
@@ -15,19 +16,15 @@ app.secret_key = "newshades-secret-2024"
 ADMIN_FILE = os.path.join(os.environ.get("SALON_DATA_DIR") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "data"), "admin.json")
 
 def _get_admin():
-    os.makedirs("data", exist_ok=True)
-    if os.path.exists(ADMIN_FILE):
-        with open(ADMIN_FILE) as f:
-            return json.load(f)
-    # first run — hash the default password
+    from werkzeug.security import generate_password_hash
+    admin = get_admin()
+    if admin: return admin
     hashed = generate_password_hash("komali123")
-    _save_admin("komali", hashed)
+    save_admin("komali", hashed)
     return {"username": "komali", "password": hashed}
 
 def _save_admin(username, hashed_password):
-    os.makedirs("data", exist_ok=True)
-    with open(ADMIN_FILE, "w") as f:
-        json.dump({"username": username, "password": hashed_password}, f)
+    save_admin(username, hashed_password)
 
 def gen_id(prefix=""):
     return prefix + str(uuid.uuid4())[:8].upper()
