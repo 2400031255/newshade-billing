@@ -12,8 +12,6 @@ from storage import (save_customer, get_customer, get_all_customers,
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "newshades-secret-2024")
-app.config["SESSION_PERMANENT"] = False
-app.config["PERMANENT_SESSION_LIFETIME"] = 0
 
 @app.errorhandler(500)
 def internal_error(e):
