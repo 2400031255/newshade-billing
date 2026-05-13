@@ -1,0 +1,297 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="about-page">
+
+  <!-- Hero Section -->
+  <div class="about-hero">
+    <div class="hero-orb hero-orb1"></div>
+    <div class="hero-orb hero-orb2"></div>
+    <div class="hero-orb hero-orb3"></div>
+    <div class="hero-content">
+      <div class="hero-logo">
+        <img src="/static/logo.jpeg" alt="Newshades Logo"/>
+        <div class="logo-ring"></div>
+        <div class="logo-ring ring2"></div>
+      </div>
+      <h1 class="hero-title">Newshades<br><em>Family Salon</em></h1>
+      <p class="hero-tagline">"Enhancing your beauty with style, care, and confidence."</p>
+    </div>
+  </div>
+
+  <!-- About Card -->
+  <div class="about-card">
+    <div class="about-card-inner">
+      <div class="section-badge">✨ Our Story</div>
+      <p class="about-text">
+        At <strong>Newshades Family Salon</strong>, we believe beauty is more than appearance —
+        it is a feeling of <em>confidence and self-care</em>. Our salon offers professional beauty
+        and grooming services in a comfortable and relaxing environment for men, women, and families.
+      </p>
+    </div>
+  </div>
+
+  <!-- Services Highlights -->
+  <div class="services-highlight">
+    <div class="section-badge">💫 What We Offer</div>
+    <div class="highlight-grid">
+      <div class="highlight-item">
+        <div class="h-icon">💇</div>
+        <div class="h-label">Hair Styling</div>
+      </div>
+      <div class="highlight-item">
+        <div class="h-icon">🧖</div>
+        <div class="h-label">Hair Spa</div>
+      </div>
+      <div class="highlight-item">
+        <div class="h-icon">✨</div>
+        <div class="h-label">Facials</div>
+      </div>
+      <div class="highlight-item">
+        <div class="h-icon">🌿</div>
+        <div class="h-label">Skincare</div>
+      </div>
+      <div class="highlight-item">
+        <div class="h-icon">💄</div>
+        <div class="h-label">Makeup</div>
+      </div>
+      <div class="highlight-item">
+        <div class="h-icon">💅</div>
+        <div class="h-label">Grooming</div>
+      </div>
+      <div class="highlight-item">
+        <div class="h-icon">🌸</div>
+        <div class="h-label">Wellness</div>
+      </div>
+      <div class="highlight-item">
+        <div class="h-icon">👨‍👩‍👧</div>
+        <div class="h-label">Family Care</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mission Card -->
+  <div class="mission-card">
+    <div class="mission-left">
+      <div class="section-badge light">🌟 Our Mission</div>
+      <p class="mission-text">
+        We specialize in hair styling, hair spa, facials, skincare, makeup, grooming, and wellness
+        treatments using <strong>quality products</strong> and <strong>modern techniques</strong>.
+        Our experienced professionals focus on providing <em>personalized services</em> that match
+        every customer's style and satisfaction.
+      </p>
+    </div>
+    <div class="mission-right">
+      <div class="mission-stat">
+        <div class="m-num">500+</div>
+        <div class="m-lbl">Happy Clients</div>
+      </div>
+      <div class="mission-stat">
+        <div class="m-num">15+</div>
+        <div class="m-lbl">Services</div>
+      </div>
+      <div class="mission-stat">
+        <div class="m-num">5★</div>
+        <div class="m-lbl">Rated</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Values -->
+  <div class="values-section">
+    <div class="section-badge">💎 Our Values</div>
+    <div class="values-grid">
+      <div class="value-card">
+        <div class="v-icon">🌺</div>
+        <div class="v-title">Elegance</div>
+        <div class="v-desc">A perfect blend of style and sophistication in every service</div>
+      </div>
+      <div class="value-card">
+        <div class="v-icon">🧼</div>
+        <div class="v-title">Hygiene</div>
+        <div class="v-desc">Strict cleanliness standards for a safe and healthy experience</div>
+      </div>
+      <div class="value-card">
+        <div class="v-icon">❤️</div>
+        <div class="v-title">Care</div>
+        <div class="v-desc">Personalized attention to every customer's unique needs</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer Quote -->
+  <div class="about-footer-quote">
+    <div class="quote-line"></div>
+    <div class="quote-text">✨ "Look Beautiful, Feel Beautiful." ✨</div>
+    <div class="quote-line"></div>
+    <div class="quote-sub">Newshades Family Salon — Where Beauty Meets Care</div>
+  </div>
+
+</div>
+
+<style>
+  .about-page { padding-bottom: 48px; }
+
+  /* Hero */
+  .about-hero {
+    position: relative; overflow: hidden;
+    background: linear-gradient(135deg, #1c0f1e 0%, #3d1a3a 50%, #5c2a52 100%);
+    border-radius: 20px; padding: 56px 32px;
+    text-align: center; margin-bottom: 28px;
+  }
+  .hero-orb {
+    position: absolute; border-radius: 50%;
+    filter: blur(60px); pointer-events: none;
+    animation: orbFloat 6s ease-in-out infinite;
+  }
+  .hero-orb1 { width: 300px; height: 300px; background: rgba(232,160,176,0.2); top: -80px; right: -60px; }
+  .hero-orb2 { width: 200px; height: 200px; background: rgba(201,169,110,0.15); bottom: -40px; left: -40px; animation-delay: 2s; }
+  .hero-orb3 { width: 150px; height: 150px; background: rgba(123,63,110,0.3); top: 40%; left: 30%; animation-delay: 4s; }
+  @keyframes orbFloat {
+    0%,100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-20px) scale(1.05); }
+  }
+  .hero-content { position: relative; z-index: 2; }
+  .hero-logo {
+    position: relative; display: inline-block;
+    margin-bottom: 20px;
+  }
+  .hero-logo img {
+    width: 100px; height: 100px; border-radius: 50%;
+    object-fit: cover; border: 3px solid rgba(232,160,176,0.5);
+    box-shadow: 0 0 40px rgba(232,160,176,0.4);
+    position: relative; z-index: 2;
+  }
+  .logo-ring {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 120px; height: 120px; border-radius: 50%;
+    border: 1px solid rgba(232,160,176,0.3);
+    animation: ringPulse 3s ease-in-out infinite;
+  }
+  .ring2 { width: 145px; height: 145px; border-color: rgba(201,169,110,0.2); animation-delay: 1s; }
+  @keyframes ringPulse {
+    0%,100% { transform: translate(-50%,-50%) scale(1); opacity: 0.6; }
+    50% { transform: translate(-50%,-50%) scale(1.08); opacity: 1; }
+  }
+  .hero-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 42px; font-weight: 700;
+    color: #fdf6f0; line-height: 1.15;
+    margin-bottom: 12px;
+  }
+  .hero-title em { color: #e8a0b0; font-style: italic; }
+  .hero-tagline {
+    font-size: 14px; color: rgba(253,246,240,0.65);
+    letter-spacing: 1px; font-style: italic;
+  }
+
+  /* Section badge */
+  .section-badge {
+    display: inline-block;
+    padding: 6px 16px; border-radius: 20px;
+    background: linear-gradient(135deg, rgba(232,160,176,0.15), rgba(201,169,110,0.1));
+    border: 1px solid rgba(232,160,176,0.3);
+    font-size: 12px; font-weight: 500;
+    color: #7b3f6e; letter-spacing: 1px;
+    margin-bottom: 16px;
+  }
+  .section-badge.light { color: #fdf6f0; border-color: rgba(255,255,255,0.2); background: rgba(255,255,255,0.08); }
+
+  /* About card */
+  .about-card {
+    background: #fff; border-radius: 16px;
+    padding: 28px 32px; margin-bottom: 20px;
+    box-shadow: 0 2px 16px rgba(61,26,58,0.08);
+    border-left: 4px solid #e8a0b0;
+  }
+  .about-text {
+    font-size: 15px; line-height: 1.8; color: #4a3a45;
+  }
+  .about-text strong { color: #3d1a3a; }
+  .about-text em { color: #7b3f6e; }
+
+  /* Services highlight */
+  .services-highlight {
+    background: #fff; border-radius: 16px;
+    padding: 28px 32px; margin-bottom: 20px;
+    box-shadow: 0 2px 16px rgba(61,26,58,0.08);
+  }
+  .highlight-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 12px; margin-top: 8px;
+  }
+  .highlight-item {
+    text-align: center; padding: 16px 8px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #fdf6f0, #f5eff8);
+    border: 1px solid #ede0e8;
+    transition: all 0.2s;
+  }
+  .highlight-item:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(232,160,176,0.2); border-color: #e8a0b0; }
+  .h-icon { font-size: 24px; margin-bottom: 6px; }
+  .h-label { font-size: 11px; font-weight: 500; color: #3d1a3a; letter-spacing: 0.5px; }
+
+  /* Mission */
+  .mission-card {
+    background: linear-gradient(135deg, #3d1a3a, #7b3f6e);
+    border-radius: 16px; padding: 32px;
+    margin-bottom: 20px;
+    display: flex; gap: 32px; align-items: center;
+    box-shadow: 0 4px 24px rgba(61,26,58,0.25);
+  }
+  .mission-left { flex: 1; }
+  .mission-text { font-size: 14px; line-height: 1.8; color: rgba(253,246,240,0.8); margin-top: 8px; }
+  .mission-text strong { color: #e8c98a; }
+  .mission-text em { color: #e8a0b0; }
+  .mission-right {
+    display: flex; flex-direction: column; gap: 16px;
+    min-width: 100px;
+  }
+  .mission-stat { text-align: center; }
+  .m-num {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 28px; font-weight: 700; color: #e8c98a;
+  }
+  .m-lbl { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: rgba(253,246,240,0.5); }
+
+  /* Values */
+  .values-section {
+    background: #fff; border-radius: 16px;
+    padding: 28px 32px; margin-bottom: 28px;
+    box-shadow: 0 2px 16px rgba(61,26,58,0.08);
+  }
+  .values-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .value-card {
+    padding: 24px 16px; border-radius: 14px; text-align: center;
+    background: linear-gradient(135deg, #fdf6f0, #f5eff8);
+    border: 1px solid #ede0e8; transition: all 0.2s;
+  }
+  .value-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(232,160,176,0.2); }
+  .v-icon { font-size: 32px; margin-bottom: 10px; }
+  .v-title { font-size: 15px; font-weight: 600; color: #3d1a3a; margin-bottom: 6px; }
+  .v-desc { font-size: 12px; color: #8a7a85; line-height: 1.6; }
+
+  /* Footer quote */
+  .about-footer-quote { text-align: center; padding: 16px 0; }
+  .quote-line {
+    height: 1px; background: linear-gradient(to right, transparent, rgba(232,160,176,0.4), transparent);
+    margin: 12px 0;
+  }
+  .quote-text {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 20px; font-style: italic;
+    color: #7b3f6e; letter-spacing: 1px;
+  }
+  .quote-sub { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: #b09aaa; margin-top: 8px; }
+
+  @media (max-width: 768px) {
+    .highlight-grid { grid-template-columns: repeat(4, 1fr); }
+    .values-grid { grid-template-columns: 1fr; }
+    .mission-card { flex-direction: column; }
+    .mission-right { flex-direction: row; justify-content: center; }
+    .hero-title { font-size: 30px; }
+  }
+</style>
+
+{% endblock %}

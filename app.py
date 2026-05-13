@@ -12,7 +12,7 @@ from storage import (save_customer, get_customer, get_all_customers,
 app = Flask(__name__)
 app.secret_key = "newshades-secret-2024"
 
-ADMIN_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "admin.json")
+ADMIN_FILE = os.path.join(os.environ.get("SALON_DATA_DIR") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "data"), "admin.json")
 
 def _get_admin():
     os.makedirs("data", exist_ok=True)
@@ -261,6 +261,29 @@ def profile():
         flash("Profile updated successfully.", "success")
         return redirect(url_for("profile"))
     return render_template("profile.html", admin=admin)
+
+@app.route("/revenue")
+@admin_required
+def revenue():
+    from storage import get_all_bills
+    all_bills = get_all_bills()
+    daily = {}
+    for bid, b in all_bills.items():
+        day = b["date"][:10]
+        if day not in daily:
+            daily[day] = {"total": 0, "bills": 0, "payment": {}}
+        daily[day]["total"] += b["total"]
+        daily[day]["bills"] += 1
+        pm = b["payment_method"]
+        daily[day]["payment"][pm] = daily[day]["payment"].get(pm, 0) + b["total"]
+    sorted_daily = dict(sorted(daily.items(), reverse=True))
+    grand_total = sum(v["total"] for v in daily.values())
+    return render_template("revenue.html", daily=sorted_daily, grand_total=grand_total)
+
+@app.route("/about")
+@login_or_guest_required
+def about():
+    return render_template("about.html")
 
 @app.route("/report", methods=["GET", "POST"])
 @admin_required

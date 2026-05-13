@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">📈 Revenue List</h1>
+  <button onclick="window.print()" class="btn btn-primary no-print">🖨️ Print A4</button>
+</div>
+
+<div class="print-header">
+  <h2>Newshades Family Salon</h2>
+  <p>Daily Revenue Report — All Time</p>
+</div>
+
+{% if daily %}
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Date</th>
+      <th>Bills</th>
+      <th>Cash</th>
+      <th>UPI / Card</th>
+      <th>Total Revenue</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% set ns = namespace(idx=1) %}
+    {% for day, info in daily.items() %}
+    <tr>
+      <td>{{ ns.idx }}</td>
+      <td>{{ day }}</td>
+      <td>{{ info.bills }}</td>
+      <td>₹{{ "%.2f"|format(info.payment.get("Cash", 0)) }}</td>
+      <td>₹{{ "%.2f"|format(info.payment.get("UPI", 0) + info.payment.get("Card", 0)) }}</td>
+      <td><strong>₹{{ "%.2f"|format(info.total) }}</strong></td>
+    </tr>
+    {% set ns.idx = ns.idx + 1 %}
+    {% endfor %}
+  </tbody>
+  <tfoot>
+    <tr class="grand-total-row">
+      <td colspan="5"><strong>Grand Total</strong></td>
+      <td><strong>₹{{ "%.2f"|format(grand_total) }}</strong></td>
+    </tr>
+  </tfoot>
+</table>
+{% else %}
+<p class="empty-state">No revenue data found.</p>
+{% endif %}
+{% endblock %}
