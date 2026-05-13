@@ -11,7 +11,12 @@ from storage import (save_customer, get_customer, get_all_customers,
                      get_admin, save_admin)
 
 app = Flask(__name__)
-app.secret_key = "newshades-secret-2024"
+app.secret_key = os.environ.get("SECRET_KEY", "newshades-secret-2024")
+
+@app.errorhandler(500)
+def internal_error(e):
+    import traceback
+    return f"<pre>500 Error:\n{traceback.format_exc()}</pre>", 500
 
 ADMIN_FILE = os.path.join(os.environ.get("SALON_DATA_DIR") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "data"), "admin.json")
 
