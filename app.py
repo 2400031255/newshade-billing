@@ -241,6 +241,7 @@ def add_service():
     new_id = str(max(int(k) for k in data.keys()) + 1)
     name = request.form.get("name", "").strip()
     price = float(request.form.get("price", 0) or 0)
+    if math.isnan(price) or math.isinf(price) or price < 0: price = 0.0
     if name:
         data[new_id] = {"name": name, "price": price}
         save_services(data)
@@ -254,6 +255,7 @@ def edit_service(sid):
     if sid in data:
         data[sid]["name"] = request.form.get("name", data[sid]["name"]).strip()
         data[sid]["price"] = float(request.form.get("price", data[sid]["price"]) or 0)
+        if math.isnan(data[sid]["price"]) or math.isinf(data[sid]["price"]) or data[sid]["price"] < 0: data[sid]["price"] = 0.0
         save_services(data)
         flash("Service updated.", "success")
     return redirect(url_for("services_page"))
@@ -367,32 +369,37 @@ def export_pdf():
     all_bills = get_all_bills()
     bills = {bid: b for bid, b in all_bills.items() if b["date"].startswith(month_str)}
     revenue = sum(b["total"] for b in bills.values())
+    # Fix resource leak - use try/finally for BytesIO
     buf = io.BytesIO()
-    doc = SimpleDocTemplate(buf, pagesize=A4)
-    styles = getSampleStyleSheet()
-    elements = []
-    elements.append(Paragraph("Newshades Family Salon", styles["Title"]))
-    elements.append(Paragraph(f"Monthly Report — {month_str}", styles["Heading2"]))
-    elements.append(Paragraph(f"Total Bills: {len(bills)}   |   Total Revenue: Rs.{revenue:.2f}", styles["Normal"]))
-    elements.append(Spacer(1, 12))
-    data = [["Bill ID", "Date", "Customer", "Total", "Payment"]]
-    for bid, b in sorted(bills.items(), key=lambda x: x[1]["date"], reverse=True):
-        c = get_customer(b["customer_id"])
-        data.append([bid, b["date"][:10], c.name if c else "Walk-in", f"Rs.{b['total']:.2f}", b["payment_method"]])
-    t = Table(data, colWidths=[80, 80, 150, 80, 80])
-    t.setStyle(TableStyle([
-        ("BACKGROUND", (0,0), (-1,0), colors.HexColor("#3d1a3a")),
-        ("TEXTCOLOR", (0,0), (-1,0), colors.white),
-        ("FONTSIZE", (0,0), (-1,0), 10),
-        ("ROWBACKGROUNDS", (0,1), (-1,-1), [colors.white, colors.HexColor("#fdf6f0")]),
-        ("GRID", (0,0), (-1,-1), 0.5, colors.HexColor("#e8dce4")),
-        ("FONTSIZE", (0,1), (-1,-1), 9),
-        ("PADDING", (0,0), (-1,-1), 6),
-    ]))
-    elements.append(t)
-    doc.build(elements)
-    buf.seek(0)
-    response = make_response(buf.read())
+    try:
+        doc = SimpleDocTemplate(buf, pagesize=A4)
+        styles = getSampleStyleSheet()
+        elements = []
+        elements.append(Paragraph("Newshades Family Salon", styles["Title"]))
+        elements.append(Paragraph(f"Monthly Report \u2014 {month_str}", styles["Heading2"]))
+        elements.append(Paragraph(f"Total Bills: {len(bills)}   |   Total Revenue: Rs.{revenue:.2f}", styles["Normal"]))
+        elements.append(Spacer(1, 12))
+        data = [["Bill ID", "Date", "Customer", "Total", "Payment"]]
+        for bid, b in sorted(bills.items(), key=lambda x: x[1]["date"], reverse=True):
+            c = get_customer(b["customer_id"])
+            data.append([bid, b["date"][:10], c.name if c else "Walk-in", f"Rs.{b['total']:.2f}", b["payment_method"]])
+        t = Table(data, colWidths=[80, 80, 150, 80, 80])
+        t.setStyle(TableStyle([
+            ("BACKGROUND", (0,0), (-1,0), colors.HexColor("#3d1a3a")),
+            ("TEXTCOLOR", (0,0), (-1,0), colors.white),
+            ("FONTSIZE", (0,0), (-1,0), 10),
+            ("ROWBACKGROUNDS", (0,1), (-1,-1), [colors.white, colors.HexColor("#fdf6f0")]),
+            ("GRID", (0,0), (-1,-1), 0.5, colors.HexColor("#e8dce4")),
+            ("FONTSIZE", (0,1), (-1,-1), 9),
+            ("PADDING", (0,0), (-1,-1), 6),
+        ]))
+        elements.append(t)
+        doc.build(elements)
+        buf.seek(0)
+        pdf_data = buf.read()
+    finally:
+        buf.close()
+    response = make_response(pdf_data)
     response.headers["Content-Type"] = "application/pdf"
     response.headers["Content-Disposition"] = f"attachment; filename=report_{month_str}.pdf"
     return response
