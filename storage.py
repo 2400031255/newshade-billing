@@ -3,7 +3,8 @@ from models import Customer, Bill, BillItem, Service
 from datetime import datetime
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.environ.get("SALON_DATA_DIR") or os.environ.get("RENDER_DATA_DIR") or os.path.join(BASE_DIR, "data")
+_render_data = os.environ.get("RENDER_DATA_DIR")
+DATA_DIR = _render_data if (_render_data and os.access(os.path.dirname(_render_data) or '/', os.W_OK)) else os.path.join(BASE_DIR, "data")
 CUSTOMERS_FILE = os.path.join(DATA_DIR, "customers.json")
 BILLS_FILE     = os.path.join(DATA_DIR, "bills.json")
 SERVICES_FILE  = os.path.join(DATA_DIR, "services.json")
