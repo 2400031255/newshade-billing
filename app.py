@@ -8,6 +8,7 @@ from services import SERVICES, get_services, DEFAULTS
 from storage import (save_customer, get_customer, get_all_customers,
                      find_customer_by_phone, save_bill, get_bills_by_date,
                      delete_customer_visit, load_services, save_services, delete_service)
+from functools import lru_cache
 
 app = Flask(__name__)
 app.secret_key = "newshades-secret-2024"
@@ -98,8 +99,35 @@ def dashboard():
     today = datetime.now().strftime("%Y-%m-%d")
     bills = get_bills_by_date(today)
     revenue = sum(b["total"] for b in bills.values())
-    return render_template("dashboard.html", total_customers=len(customers),
-                           total_bills=len(bills), revenue=revenue, today=today)
+
+    # Recent bills with customer names
+    recent_bills = []
+    for bid, b in sorted(bills.items(), key=lambda x: x[1]["date"], reverse=True)[:8]:
+        c = get_customer(b["customer_id"])
+        recent_bills.append({"id": bid, "customer": c.name if c else "Walk-in", "total": b["total"], "payment": b["payment_method"], "time": b["date"][11:16]})
+
+    # Top services today
+    service_count = {}
+    for b in bills.values():
+        for item in b["items"]:
+            name = item["service_name"]
+            service_count[name] = service_count.get(name, 0) + item["quantity"]
+    top_services = sorted(service_count.items(), key=lambda x: x[1], reverse=True)[:5]
+
+    # Payment breakdown
+    payment_summary = {}
+    for b in bills.values():
+        pm = b["payment_method"]
+        payment_summary[pm] = payment_summary.get(pm, 0) + b["total"]
+
+    return render_template("dashboard.html",
+        total_customers=len(customers),
+        total_bills=len(bills),
+        revenue=revenue,
+        recent_bills=recent_bills,
+        top_services=top_services,
+        payment_summary=payment_summary,
+        today=today)
 
 @app.route("/customers")
 @login_or_guest_required

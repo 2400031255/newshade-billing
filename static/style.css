@@ -136,3 +136,28 @@ nav a:hover, nav a.active { background: #4a2d7a; color: #fff; border-left: 3px s
 .brand h2 { font-family: 'Cormorant Garamond', serif; font-size: 18px; color: #f5e6c8; font-weight: 400; letter-spacing: 1px; }
 .brand small { font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: rgba(212,175,55,0.6); }
 .role-badge.employee { background: rgba(201,169,110,0.15); color: #c9a96e; border: 1px solid rgba(201,169,110,0.3); }
+
+/* ── Performance & Smoothness ── */
+*, *::before, *::after { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+html { scroll-behavior: smooth; }
+a, button, .btn, .service-item, .role-card, nav a { will-change: transform; }
+img { will-change: auto; }
+.content { will-change: auto; }
+
+/* Page load fade-in */
+.content { animation: pageIn 0.3s ease both; }
+@keyframes pageIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+/* Smooth nav transitions */
+nav a { transition: background 0.15s ease, color 0.15s ease, border-left 0.15s ease; }
+
+/* Smooth table rows */
+.data-table tr { transition: background 0.15s ease; }
+
+/* Smooth buttons */
+.btn { transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease; }
+.btn:active { transform: scale(0.97); }
+
+/* Smooth alerts - auto hide */
+.alert { animation: alertIn 0.3s ease both; }
+@keyframes alertIn { from { opacity:0; transform:translateX(-10px); } to { opacity:1; transform:translateX(0); } }
