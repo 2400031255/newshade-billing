@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">📅 Monthly Report</h1>
+  <div style="display:flex;gap:10px;">
+    <a href="/report/pdf?month={{ month }}" class="btn btn-primary">📄 Export PDF</a>
+    <a href="/report" class="btn btn-secondary">📊 Daily Report</a>
+  </div>
+</div>
+
+<form method="POST" class="date-form" style="margin-bottom:24px;">
+  <input type="month" name="month" value="{{ month }}" required>
+  <button type="submit" class="btn btn-primary">View</button>
+</form>
+
+<div class="stats-grid" style="margin-bottom:24px;">
+  <div class="stat-card"><div class="stat-icon">🧾</div><div class="stat-value">{{ bills|length }}</div><div class="stat-label">Total Bills</div></div>
+  <div class="stat-card"><div class="stat-icon">💰</div><div class="stat-value">₹{{ "%.0f"|format(revenue) }}</div><div class="stat-label">Total Revenue</div></div>
+  <div class="stat-card"><div class="stat-icon">📈</div><div class="stat-value">₹{{ "%.0f"|format(revenue / bills|length if bills|length > 0 else 0) }}</div><div class="stat-label">Avg per Bill</div></div>
+</div>
+
+{% if payment_summary %}
+<h3 style="margin:0 0 12px;color:#3d1a3a;">💳 Payment Breakdown</h3>
+<table class="data-table" style="max-width:400px;margin-bottom:24px;">
+  <thead><tr><th>Method</th><th>Amount</th></tr></thead>
+  <tbody>
+    {% for method, amount in payment_summary.items() %}
+    <tr><td>{{ method }}</td><td>₹{{ "%.0f"|format(amount) }}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+{% if top_services %}
+<h3 style="margin:0 0 12px;color:#3d1a3a;">🌟 Top Services</h3>
+<div style="background:#fff;border-radius:12px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,0.08);margin-bottom:24px;">
+  {% for name, count in top_services %}
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+    <span style="width:140px;font-size:13px;color:#3d1a3a;">{{ name }}</span>
+    <div style="flex:1;background:#f0e8f8;border-radius:20px;height:8px;overflow:hidden;">
+      <div style="width:{{ (count / top_services[0][1] * 100)|int }}%;height:100%;background:linear-gradient(90deg,#7b3f6e,#e8a0b0);border-radius:20px;"></div>
+    </div>
+    <span style="font-size:12px;font-weight:600;color:#7b3f6e;">{{ count }}x</span>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if daily_sorted %}
+<h3 style="margin:0 0 12px;color:#3d1a3a;">📆 Daily Revenue</h3>
+<table class="data-table" style="margin-bottom:24px;">
+  <thead><tr><th>Date</th><th>Revenue</th></tr></thead>
+  <tbody>
+    {% for day, amt in daily_sorted %}
+    <tr><td>{{ day }}</td><td>₹{{ "%.0f"|format(amt) }}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+{% if not bills %}
+<p class="empty-state">No bills found for {{ month }}.</p>
+{% endif %}
+{% endblock %}

@@ -4,7 +4,7 @@
 <form method="POST" class="bill-form">
   <div class="form-section">
     <h3>Customer Details</h3>
-    <input type="text" name="phone" id="phone" placeholder="Phone Number" required pattern="[0-9]{10}" maxlength="10" oninput="validatePhone(this)" title="Enter 10 digit phone number">
+    <input type="text" name="phone" id="phone" placeholder="Phone Number" required pattern="[0-9]{10}" maxlength="10" oninput="validatePhone(this)" title="Enter 10 digit phone number" value="{{ request.args.get('phone', '') }}">
     <small id="phone-msg" style="font-size:12px;margin-top:4px;display:block;"></small>
     <input type="text" name="name" placeholder="Name (if new customer)">
   </div>

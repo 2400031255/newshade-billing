@@ -1,14 +1,13 @@
-import uuid, json, os, math
-from datetime import datetime
+import uuid, json, os, math, shutil
+from datetime import datetime, timedelta
 from functools import wraps
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, make_response
 from werkzeug.security import generate_password_hash, check_password_hash
 from models import Customer, Bill, BillItem
 from services import SERVICES, get_services, DEFAULTS
 from storage import (save_customer, get_customer, get_all_customers,
                      find_customer_by_phone, save_bill, get_bills_by_date,
                      delete_customer_visit, load_services, save_services, delete_service)
-from functools import lru_cache
 
 app = Flask(__name__)
 app.secret_key = "newshades-secret-2024"
@@ -312,6 +311,110 @@ def revenue():
 @login_or_guest_required
 def about():
     return render_template("about.html")
+
+# ── Search ───────────────────────────────────────────────────────────────────
+
+@app.route("/customers/search")
+@login_or_guest_required
+def search_customers():
+    q = request.args.get("q", "").strip().lower()
+    all_customers = get_all_customers()
+    if q:
+        results = [c for c in all_customers if q in c.name.lower() or q in c.phone]
+    else:
+        results = all_customers
+    return jsonify([{"id": c.customer_id, "name": c.name, "phone": c.phone, "visits": len(c.visit_history)} for c in results])
+
+# ── Monthly Report ────────────────────────────────────────────────────────────
+
+@app.route("/report/monthly", methods=["GET", "POST"])
+@admin_required
+def monthly_report():
+    from storage import get_all_bills
+    month_str = request.form.get("month", datetime.now().strftime("%Y-%m")) if request.method == "POST" else datetime.now().strftime("%Y-%m")
+    all_bills = get_all_bills()
+    bills = {bid: b for bid, b in all_bills.items() if b["date"].startswith(month_str)}
+    revenue = sum(b["total"] for b in bills.values())
+    payment_summary = {}
+    service_summary = {}
+    daily_revenue = {}
+    for b in bills.values():
+        pm = b["payment_method"]
+        payment_summary[pm] = payment_summary.get(pm, 0) + b["total"]
+        day = b["date"][:10]
+        daily_revenue[day] = daily_revenue.get(day, 0) + b["total"]
+        for item in b["items"]:
+            sn = item["service_name"]
+            service_summary[sn] = service_summary.get(sn, 0) + item["quantity"]
+    top_services = sorted(service_summary.items(), key=lambda x: x[1], reverse=True)[:10]
+    daily_sorted = sorted(daily_revenue.items())
+    return render_template("monthly_report.html", month=month_str, bills=bills,
+        revenue=revenue, payment_summary=payment_summary,
+        top_services=top_services, daily_sorted=daily_sorted)
+
+# ── PDF Export ────────────────────────────────────────────────────────────────
+
+@app.route("/report/pdf")
+@admin_required
+def export_pdf():
+    from storage import get_all_bills
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib import colors
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    from reportlab.lib.styles import getSampleStyleSheet
+    import io
+    month_str = request.args.get("month", datetime.now().strftime("%Y-%m"))
+    all_bills = get_all_bills()
+    bills = {bid: b for bid, b in all_bills.items() if b["date"].startswith(month_str)}
+    revenue = sum(b["total"] for b in bills.values())
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A4)
+    styles = getSampleStyleSheet()
+    elements = []
+    elements.append(Paragraph("Newshades Family Salon", styles["Title"]))
+    elements.append(Paragraph(f"Monthly Report — {month_str}", styles["Heading2"]))
+    elements.append(Paragraph(f"Total Bills: {len(bills)}   |   Total Revenue: Rs.{revenue:.2f}", styles["Normal"]))
+    elements.append(Spacer(1, 12))
+    data = [["Bill ID", "Date", "Customer", "Total", "Payment"]]
+    for bid, b in sorted(bills.items(), key=lambda x: x[1]["date"], reverse=True):
+        c = get_customer(b["customer_id"])
+        data.append([bid, b["date"][:10], c.name if c else "Walk-in", f"Rs.{b['total']:.2f}", b["payment_method"]])
+    t = Table(data, colWidths=[80, 80, 150, 80, 80])
+    t.setStyle(TableStyle([
+        ("BACKGROUND", (0,0), (-1,0), colors.HexColor("#3d1a3a")),
+        ("TEXTCOLOR", (0,0), (-1,0), colors.white),
+        ("FONTSIZE", (0,0), (-1,0), 10),
+        ("ROWBACKGROUNDS", (0,1), (-1,-1), [colors.white, colors.HexColor("#fdf6f0")]),
+        ("GRID", (0,0), (-1,-1), 0.5, colors.HexColor("#e8dce4")),
+        ("FONTSIZE", (0,1), (-1,-1), 9),
+        ("PADDING", (0,0), (-1,-1), 6),
+    ]))
+    elements.append(t)
+    doc.build(elements)
+    buf.seek(0)
+    response = make_response(buf.read())
+    response.headers["Content-Type"] = "application/pdf"
+    response.headers["Content-Disposition"] = f"attachment; filename=report_{month_str}.pdf"
+    return response
+
+# ── Auto Backup ───────────────────────────────────────────────────────────────
+
+@app.route("/backup")
+@admin_required
+def backup():
+    import zipfile, io
+    from storage import DATA_DIR
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for fname in ["customers.json", "bills.json", "services.json", "admin.json"]:
+            fpath = os.path.join(DATA_DIR, fname)
+            if os.path.exists(fpath):
+                zf.write(fpath, fname)
+    buf.seek(0)
+    response = make_response(buf.read())
+    response.headers["Content-Type"] = "application/zip"
+    response.headers["Content-Disposition"] = f"attachment; filename=newshades_backup_{datetime.now().strftime('%Y%m%d_%H%M')}.zip"
+    return response
 
 @app.route("/report", methods=["GET", "POST"])
 @admin_required

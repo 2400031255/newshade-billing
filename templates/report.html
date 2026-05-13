@@ -1,39 +1,52 @@
 {% extends "base.html" %}
 {% block content %}
-<h1 class="page-title">Daily Sales Report</h1>
+<div class="page-header">
+  <h1 class="page-title">📊 Daily Report</h1>
+  <a href="/report/monthly" class="btn btn-secondary">📅 Monthly Report</a>
+</div>
+
 <form method="POST" class="date-form">
   <input type="date" name="date" value="{{ date }}" required>
-  <button type="submit" class="btn btn-primary">View Report</button>
+  <button type="submit" class="btn btn-primary">View</button>
+  {% if bills %}
+  <a href="/report/pdf?month={{ date[:7] }}" class="btn btn-secondary">📄 Export PDF</a>
+  {% endif %}
 </form>
 
 <div class="report-summary">
   <div class="stat-card"><div class="stat-icon">🧾</div><div class="stat-value">{{ bills|length }}</div><div class="stat-label">Total Bills</div></div>
-  <div class="stat-card"><div class="stat-icon">💰</div><div class="stat-value">₹{{ "%.2f"|format(revenue) }}</div><div class="stat-label">Total Revenue</div></div>
+  <div class="stat-card"><div class="stat-icon">💰</div><div class="stat-value">₹{{ "%.0f"|format(revenue) }}</div><div class="stat-label">Total Revenue</div></div>
 </div>
 
 {% if payment_summary %}
-<h3>Payment Breakdown</h3>
-<table class="data-table">
+<h3 style="margin:20px 0 12px;color:#3d1a3a;">💳 Payment Breakdown</h3>
+<table class="data-table" style="max-width:400px;margin-bottom:24px;">
   <thead><tr><th>Method</th><th>Amount</th></tr></thead>
   <tbody>
     {% for method, amount in payment_summary.items() %}
-    <tr><td>{{ method }}</td><td>₹{{ "%.2f"|format(amount) }}</td></tr>
+    <tr><td><span class="pay-badge {{ method|lower }}">{{ method }}</span></td><td>₹{{ "%.0f"|format(amount) }}</td></tr>
     {% endfor %}
   </tbody>
 </table>
 {% endif %}
 
 {% if bills %}
-<h3>Bills</h3>
+<h3 style="margin:0 0 12px;color:#3d1a3a;">🧾 Bills</h3>
 <table class="data-table">
-  <thead><tr><th>Bill ID</th><th>Customer</th><th>Total</th><th>Payment</th></tr></thead>
+  <thead><tr><th>Bill ID</th><th>Customer</th><th>Total</th><th>Payment</th><th>Share</th></tr></thead>
   <tbody>
     {% for bid, b in bills.items() %}
     <tr>
-      <td>{{ bid }}</td>
+      <td><a href="/bill/{{ bid }}" style="color:#7b3f6e;text-decoration:none;font-weight:600;">{{ bid }}</a></td>
       <td>{{ b.customer_id }}</td>
-      <td>₹{{ "%.2f"|format(b.total) }}</td>
-      <td>{{ b.payment_method }}</td>
+      <td>₹{{ "%.0f"|format(b.total) }}</td>
+      <td><span class="pay-badge {{ b.payment_method|lower }}">{{ b.payment_method }}</span></td>
+      <td>
+        <a href="https://wa.me/?text={{ ('Bill ID: ' + bid + '%0AAmount: Rs.' + '%.0f'|format(b.total) + '%0APayment: ' + b.payment_method + '%0ADate: ' + b.date[:10] + '%0ANewshades Family Salon') }}"
+           target="_blank" class="btn btn-sm" style="background:#e8f5e9;color:#1a6b3a;border:1px solid #c8e6c9;">
+          📱 WhatsApp
+        </a>
+      </td>
     </tr>
     {% endfor %}
   </tbody>
@@ -41,4 +54,11 @@
 {% else %}
 <p class="empty-state">No bills found for {{ date }}.</p>
 {% endif %}
+
+<style>
+  .pay-badge { padding:3px 10px; border-radius:20px; font-size:11px; font-weight:500; }
+  .pay-badge.cash { background:#e8f5e9; color:#2e7d32; }
+  .pay-badge.upi  { background:#e3f2fd; color:#1565c0; }
+  .pay-badge.card { background:#fce4ec; color:#c62828; }
+</style>
 {% endblock %}

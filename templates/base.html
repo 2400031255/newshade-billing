@@ -23,6 +23,8 @@
       <a href="/report"    class="{{ 'active' if request.path == '/report' }}">📊 Daily Report</a>
       <a href="/revenue"   class="{{ 'active' if '/revenue' in request.path }}">📈 Revenue List</a>
       <a href="/services"  class="{{ 'active' if '/services' in request.path }}">⚙️ Manage Services</a>
+      <a href="/report/monthly" class="{{ 'active' if '/report/monthly' in request.path }}">📅 Monthly Report</a>
+      <a href="/backup" class="{{ 'active' if '/backup' in request.path }}">💾 Backup Data</a>
       <a href="/profile"   class="{{ 'active' if '/profile' in request.path }}">👤 My Profile</a>
       {% endif %}
       <a href="/about"     class="{{ 'active' if '/about' in request.path }}">🌸 About</a>
