@@ -28,7 +28,10 @@ def _read_json(filepath):
     if not os.path.exists(filepath):
         return {}
     with open(filepath, "r") as f:
-        return json.load(f)
+        data = json.load(f)
+    if isinstance(data, list):
+        return {}
+    return data
 
 def _write_json(filepath, data):
     _ensure_data_dir()

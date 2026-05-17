@@ -1,43 +1,73 @@
 @echo off
-title Newshades Family Salon - Billing System
-color 0D
+title Newshades Family Salon
+color 0A
 
 echo.
-echo  ==========================================
-echo    NEWSHADES FAMILY SALON - BILLING SYSTEM
-echo  ==========================================
-echo.
-echo  Starting server, please wait...
+echo ==========================================
+echo   NEWSHADES FAMILY SALON - BILLING SYSTEM
+echo ==========================================
 echo.
 
-:: Install dependencies silently
-pip install flask werkzeug gunicorn -q
+cd /d "%~dp0"
 
-:: Get local IP
-for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /i "IPv4"') do (
-    set IP=%%a
-    goto :found
+:: Check Python
+python --version >nul 2>&1
+if %errorlevel% neq 0 (
+    color 0C
+    echo   ERROR: Python is not installed!
+    echo   Please run INSTALL.bat first.
+    echo.
+    pause
+    exit
 )
-:found
-set IP=%IP: =%
 
-echo  ==========================================
-echo   App is running!
-echo.
-echo   Open on THIS computer:
-echo   http://localhost:8080
-echo.
-echo   Open on OTHER devices (WiFi):
-echo   http://%IP%:8080
-echo  ==========================================
-echo.
-echo  DO NOT close this window while using app.
-echo.
+:: Install dependencies (show errors if any)
+echo   Checking dependencies...
+python -m pip install flask werkzeug reportlab -q
+if %errorlevel% neq 0 (
+    color 0C
+    echo   ERROR: Failed to install dependencies.
+    echo   Check your internet connection and try again.
+    pause
+    exit
+)
 
-:: Open browser automatically
+:: Kill anything on port 8080
+echo   Clearing port 8080...
+for /f "tokens=5" %%a in ('netstat -aon 2^>nul ^| find ":8080" ^| find "LISTENING"') do (
+    taskkill /f /pid %%a >nul 2>&1
+)
+timeout /t 1 /nobreak >nul
+
+:: Start Flask visibly so errors show
+echo   Starting server...
+start "Newshades Server" /min python app.py
+
+:: Wait longer for server to be ready
+echo   Waiting for server to start...
+timeout /t 5 /nobreak >nul
+
+:: Check if server actually started
+netstat -aon | find ":8080" | find "LISTENING" >nul 2>&1
+if %errorlevel% neq 0 (
+    color 0C
+    echo.
+    echo   ERROR: Server failed to start!
+    echo   Close this window, then run START_SALON.bat again.
+    echo   If problem persists, run INSTALL.bat again.
+    echo.
+    pause
+    exit
+)
+
+:: Open browser
+echo   Opening browser...
 start http://localhost:8080
 
-:: Start Flask app
-python app.py
-
+echo.
+echo ==========================================
+echo   App is running at http://localhost:8080
+echo   DO NOT close this window!
+echo ==========================================
+echo.
 pause

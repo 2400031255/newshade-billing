@@ -2,84 +2,169 @@
 {% block content %}
 <h1 class="page-title">⚙️ Manage Services</h1>
 
-<div class="card-box" style="margin-bottom:24px;">
-  <h3 style="margin-bottom:16px;color:#2d1b4e;">➕ Add New Service</h3>
-  <form method="POST" action="/services/add" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
-    <div class="form-group" style="margin:0;flex:2;min-width:180px;">
-      <label>Service Name</label>
-      <div class="input-wrap"><input type="text" name="name" placeholder="e.g. Hair Trim" required/></div>
+<!-- Add Service -->
+<div class="sv-card" style="margin-bottom:20px;">
+  <div class="sv-card-title">➕ Add New Service</div>
+  <form method="POST" action="/services/add" class="add-form">
+    <input type="text" name="name" placeholder="Service name" required>
+    <div class="price-wrap">
+      <span class="rupee">₹</span>
+      <input type="number" name="price" placeholder="Price" min="0" step="0.01" required>
     </div>
-    <div class="form-group" style="margin:0;flex:1;min-width:120px;">
-      <label>Price (₹)</label>
-      <div class="input-wrap"><input type="number" name="price" placeholder="0.00" min="0" step="0.01" required/></div>
-    </div>
-    <button type="submit" class="btn btn-primary" style="height:44px;">Add Service</button>
+    <button type="submit" class="btn-add">Add</button>
   </form>
 </div>
 
-<table class="data-table">
-  <thead>
-    <tr><th>#</th><th>Service Name</th><th>Price (₹)</th><th>Edit</th><th>Delete</th></tr>
-  </thead>
-  <tbody>
-    {% for sid, svc in services.items() %}
-    <tr id="row-{{ sid }}">
-      <td style="color:#aaa;font-size:12px;">{{ sid }}</td>
-      <td>
-        <span class="view-mode-{{ sid }}">{{ svc.name }}</span>
-        <input class="edit-mode-{{ sid }} inline-edit" type="text" value="{{ svc.name }}" style="display:none;"/>
-      </td>
-      <td>
-        <span class="view-mode-{{ sid }}">₹{{ "%.2f"|format(svc.price) }}</span>
-        <input class="edit-mode-{{ sid }} inline-edit" type="number" value="{{ svc.price }}" min="0" step="0.01" style="display:none;width:90px;"/>
-      </td>
-      <td>
-        <button class="btn btn-sm edit-btn" onclick="enableEdit('{{ sid }}')" id="edit-btn-{{ sid }}">✏️ Edit</button>
-        <form method="POST" action="/services/{{ sid }}/edit" id="edit-form-{{ sid }}" style="display:none;">
-          <input type="hidden" name="name" id="edit-name-{{ sid }}"/>
-          <input type="hidden" name="price" id="edit-price-{{ sid }}"/>
-          <button type="submit" class="btn btn-primary btn-sm">Save</button>
-          <button type="button" class="btn btn-secondary btn-sm" onclick="cancelEdit('{{ sid }}')">Cancel</button>
-        </form>
-      </td>
-      <td>
-        <form method="POST" action="/services/{{ sid }}/delete" onsubmit="return confirm('Delete {{ svc.name }}?')">
-          <button type="submit" class="btn btn-danger btn-sm">🗑 Delete</button>
-        </form>
-      </td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
+<!-- Search + List -->
+<div class="sv-card">
+  <div class="sv-card-title" style="margin-bottom:14px;">
+    📋 All Services
+    <span class="svc-total-badge">{{ services|length }}</span>
+  </div>
+
+  <!-- Search -->
+  <div class="sv-search-wrap">
+    <span>🔍</span>
+    <input type="text" id="svSearch" placeholder="Search services..." oninput="filterSvc()">
+    <button type="button" id="svClear" onclick="clearSvSearch()" style="display:none">✕</button>
+  </div>
+
+  <!-- Table -->
+  <div class="sv-table-wrap">
+    <table class="sv-table">
+      <thead>
+        <tr><th>#</th><th>Service Name</th><th>Price</th><th style="text-align:right">Actions</th></tr>
+      </thead>
+      <tbody id="svBody">
+        {% for sid, svc in services.items() %}
+        <tr id="row-{{ sid }}" data-name="{{ svc.name|lower }}">
+          <td class="sv-id">{{ loop.index }}</td>
+          <td>
+            <span class="sv-view-{{ sid }} sv-name">{{ svc.name }}</span>
+            <input class="sv-edit-{{ sid }} sv-input" type="text" value="{{ svc.name }}" style="display:none">
+          </td>
+          <td>
+            <span class="sv-view-{{ sid }} sv-price">₹{{ "%.0f"|format(svc.price) }}</span>
+            <div class="sv-edit-{{ sid }} sv-price-wrap" style="display:none">
+              <span class="rupee-sm">₹</span>
+              <input class="sv-input sv-price-input" type="number" value="{{ svc.price }}" min="0" step="0.01">
+            </div>
+          </td>
+          <td class="sv-actions">
+            <!-- View mode -->
+            <div class="sv-view-{{ sid }} action-btns">
+              <button type="button" class="sv-btn edit" onclick="enableEdit('{{ sid }}')">✏️ Edit</button>
+              <form method="POST" action="/services/{{ sid }}/delete" onsubmit="return confirm('Delete {{ svc.name }}?')" style="display:inline">
+                <button type="submit" class="sv-btn del">🗑</button>
+              </form>
+            </div>
+            <!-- Edit mode -->
+            <form method="POST" action="/services/{{ sid }}/edit" id="ef-{{ sid }}" class="sv-edit-{{ sid }} action-btns" style="display:none" onsubmit="prepEdit('{{ sid }}', event)">
+              <input type="hidden" name="name" id="en-{{ sid }}">
+              <input type="hidden" name="price" id="ep-{{ sid }}">
+              <button type="submit" class="sv-btn save">✓ Save</button>
+              <button type="button" class="sv-btn cancel" onclick="cancelEdit('{{ sid }}')">✕</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div id="svNoResults" class="sv-empty" style="display:none">No services found</div>
+  </div>
+</div>
 
 <style>
-  .card-box { background:#fff; padding:24px; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.08); }
-  .inline-edit { padding:6px 10px; border:1.5px solid #c9a96e; border-radius:8px; font-size:14px; outline:none; }
-  .btn-danger { background:#fde8ec; color:#c0394a; border:1px solid #f5c0c8; }
-  .btn-danger:hover { background:#f5c0c8; }
+  .sv-card { background:#fff; border-radius:16px; padding:20px; box-shadow:0 2px 12px rgba(61,26,58,0.08); }
+  .sv-card-title { font-size:14px; font-weight:600; color:#3d1a3a; display:flex; align-items:center; gap:10px; }
+  .svc-total-badge { background:#f0e8f8; color:#7b3f6e; font-size:11px; padding:2px 8px; border-radius:20px; font-weight:500; }
+
+  /* Add form */
+  .add-form { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .add-form input[type="text"] { flex:2; min-width:160px; padding:10px 14px; border:1.5px solid #e8dce4; border-radius:10px; font-size:14px; outline:none; background:#fafafa; }
+  .add-form input[type="text"]:focus { border-color:#7b3f6e; background:#fff; }
+  .price-wrap { flex:1; min-width:110px; position:relative; }
+  .rupee { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#7b3f6e; font-weight:600; font-size:14px; }
+  .price-wrap input { width:100%; padding:10px 14px 10px 28px; border:1.5px solid #e8dce4; border-radius:10px; font-size:14px; outline:none; background:#fafafa; box-sizing:border-box; }
+  .price-wrap input:focus { border-color:#7b3f6e; background:#fff; }
+  .btn-add { padding:10px 22px; background:linear-gradient(135deg,#3d1a3a,#7b3f6e); color:#fff; border:none; border-radius:10px; font-size:14px; font-weight:600; cursor:pointer; white-space:nowrap; transition:all 0.2s; }
+  .btn-add:hover { transform:translateY(-1px); box-shadow:0 4px 12px rgba(61,26,58,0.25); }
+
+  /* Search */
+  .sv-search-wrap { position:relative; display:flex; align-items:center; margin-bottom:14px; }
+  .sv-search-wrap span { position:absolute; left:12px; font-size:14px; }
+  #svSearch { width:100%; padding:9px 36px; border:1.5px solid #e8dce4; border-radius:10px; font-size:14px; outline:none; background:#fafafa; box-sizing:border-box; }
+  #svSearch:focus { border-color:#7b3f6e; background:#fff; }
+  #svClear { position:absolute; right:10px; background:none; border:none; cursor:pointer; color:#aaa; font-size:14px; }
+  #svClear:hover { color:#c0394a; }
+
+  /* Table */
+  .sv-table-wrap { overflow-x:auto; }
+  .sv-table { width:100%; border-collapse:collapse; font-size:13px; }
+  .sv-table thead th { font-size:11px; text-transform:uppercase; letter-spacing:0.8px; color:#8a7a85; padding:0 12px 10px; font-weight:500; border-bottom:2px solid #f0e8f8; }
+  .sv-table td { padding:11px 12px; border-bottom:1px solid #f9f4fc; vertical-align:middle; }
+  .sv-table tr:last-child td { border-bottom:none; }
+  .sv-table tr:hover td { background:#fdf9ff; }
+  .sv-id { color:#ccc; font-size:11px; width:30px; }
+  .sv-name { font-weight:500; color:#3d1a3a; }
+  .sv-price { color:#7b3f6e; font-weight:600; }
+  .sv-actions { text-align:right; white-space:nowrap; }
+
+  /* Inline edit inputs */
+  .sv-input { padding:6px 10px; border:1.5px solid #c9a96e; border-radius:8px; font-size:13px; outline:none; background:#fffbf5; }
+  .sv-price-wrap { position:relative; display:inline-flex; align-items:center; }
+  .rupee-sm { position:absolute; left:8px; color:#7b3f6e; font-size:12px; font-weight:600; }
+  .sv-price-input { padding-left:20px; width:90px; }
+
+  /* Action buttons */
+  .action-btns { display:flex; gap:6px; justify-content:flex-end; align-items:center; }
+  .sv-btn { padding:5px 12px; border-radius:8px; font-size:12px; font-weight:500; cursor:pointer; border:1.5px solid; transition:all 0.15s; }
+  .sv-btn.edit  { background:#f5f0ff; color:#3d1a3a; border-color:#e8dce4; }
+  .sv-btn.edit:hover { border-color:#7b3f6e; }
+  .sv-btn.del   { background:#fff0f3; color:#c0394a; border-color:#fce4ec; }
+  .sv-btn.del:hover { background:#fce4ec; }
+  .sv-btn.save  { background:#e8f5e9; color:#2e7d32; border-color:#c8e6c9; }
+  .sv-btn.save:hover { background:#c8e6c9; }
+  .sv-btn.cancel { background:#f5f5f5; color:#666; border-color:#e0e0e0; }
+  .sv-btn.cancel:hover { background:#e0e0e0; }
+
+  .sv-empty { text-align:center; padding:24px; color:#b09aaa; font-size:13px; }
 </style>
 
 <script>
-  function enableEdit(sid) {
-    document.querySelectorAll('.view-mode-' + sid).forEach(el => el.style.display = 'none');
-    document.querySelectorAll('.edit-mode-' + sid).forEach(el => el.style.display = 'inline-block');
-    document.getElementById('edit-btn-' + sid).style.display = 'none';
-    document.getElementById('edit-form-' + sid).style.display = 'inline-flex';
-    document.getElementById('edit-form-' + sid).style.gap = '6px';
-  }
-  function cancelEdit(sid) {
-    document.querySelectorAll('.view-mode-' + sid).forEach(el => el.style.display = '');
-    document.querySelectorAll('.edit-mode-' + sid).forEach(el => el.style.display = 'none');
-    document.getElementById('edit-btn-' + sid).style.display = '';
-    document.getElementById('edit-form-' + sid).style.display = 'none';
-  }
-  document.querySelectorAll('[id^="edit-form-"]').forEach(form => {
-    form.addEventListener('submit', function() {
-      const sid = this.id.replace('edit-form-', '');
-      const inputs = document.querySelectorAll('.edit-mode-' + sid);
-      document.getElementById('edit-name-' + sid).value = inputs[0].value;
-      document.getElementById('edit-price-' + sid).value = inputs[1].value;
+  function filterSvc() {
+    const q = document.getElementById('svSearch').value.toLowerCase();
+    document.getElementById('svClear').style.display = q ? 'block' : 'none';
+    const rows = document.querySelectorAll('#svBody tr');
+    let visible = 0;
+    rows.forEach(row => {
+      const match = row.dataset.name && row.dataset.name.includes(q);
+      row.style.display = match ? '' : 'none';
+      if (match) visible++;
     });
-  });
+    document.getElementById('svNoResults').style.display = visible === 0 ? 'block' : 'none';
+  }
+
+  function clearSvSearch() {
+    document.getElementById('svSearch').value = '';
+    filterSvc();
+    document.getElementById('svSearch').focus();
+  }
+
+  function enableEdit(sid) {
+    document.querySelectorAll('.sv-view-' + sid).forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.sv-edit-' + sid).forEach(el => el.style.display = 'inline-flex');
+  }
+
+  function cancelEdit(sid) {
+    document.querySelectorAll('.sv-view-' + sid).forEach(el => el.style.display = '');
+    document.querySelectorAll('.sv-edit-' + sid).forEach(el => el.style.display = 'none');
+  }
+
+  function prepEdit(sid, e) {
+    const inputs = document.querySelectorAll('.sv-edit-' + sid + ' input.sv-input');
+    document.getElementById('en-' + sid).value = inputs[0].value;
+    document.getElementById('ep-' + sid).value = inputs[1].value;
+  }
 </script>
 {% endblock %}

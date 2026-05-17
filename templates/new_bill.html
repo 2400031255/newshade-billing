@@ -1,80 +1,197 @@
 {% extends "base.html" %}
 {% block content %}
 <h1 class="page-title">🧾 New Bill</h1>
-<form method="POST" class="bill-form">
-  <div class="form-section">
-    <h3>Customer Details</h3>
-    <input type="text" name="phone" id="phone" placeholder="Phone Number" required pattern="[0-9]{10}" maxlength="10" oninput="validatePhone(this)" title="Enter 10 digit phone number" value="{{ request.args.get('phone', '') }}">
-    <small id="phone-msg" style="font-size:12px;margin-top:4px;display:block;"></small>
-    <input type="text" name="name" placeholder="Name (if new customer)">
-  </div>
 
-  <div class="form-section">
-    <h3>Select Services
-      {% if session.get('role') == 'admin' %}
-      <small style="font-size:12px;color:#b09aaa;font-weight:300;margin-left:8px;">✏️ You can edit prices inline</small>
-      {% endif %}
-    </h3>
-    <div class="services-grid">
-      {% for sid, svc in services.items() %}
-      <label class="service-item">
-        <input type="checkbox" name="services" value="{{ sid }}">
-        <div class="service-info">
-          <span class="service-name">{{ svc.name }}</span>
-          <span class="service-price">₹{{ "%.2f"|format(svc.price) }}</span>
-        </div>
-        <input type="number" name="qty_{{ sid }}" value="1" min="1" class="qty-input" onclick="event.stopPropagation()">
-      </label>
-      {% endfor %}
+<form method="POST" class="nb-form" id="billForm">
+
+  <!-- Customer -->
+  <div class="nb-card">
+    <div class="nb-card-title">👤 Customer</div>
+    <div class="nb-row">
+      <div class="nb-field">
+        <input type="text" name="phone" id="phone" placeholder="Phone Number" required pattern="[0-9]{10}" maxlength="10" oninput="validatePhone(this)" value="{{ request.args.get('phone', '') }}">
+        <small id="phone-msg"></small>
+      </div>
+      <div class="nb-field">
+        <input type="text" name="name" placeholder="Name (if new customer)">
+      </div>
     </div>
   </div>
 
-  <div class="form-section">
-    <h3>Discount & Payment</h3>
-    <input type="number" name="discount" placeholder="Discount %" min="0" max="100" step="0.1">
-    <select name="payment" required>
-      <option value="Cash">Cash</option>
-      <option value="Card">Card</option>
-      <option value="UPI">UPI</option>
-    </select>
+  <!-- Services -->
+  <div class="nb-card">
+    <div class="nb-card-title">✂️ Services
+      <span id="selected-count" class="sel-badge" style="display:none">0 selected</span>
+    </div>
+
+    <!-- Search -->
+    <div class="svc-search-wrap">
+      <span class="svc-search-icon">🔍</span>
+      <input type="text" id="svcSearch" placeholder="Search services..." autocomplete="off" oninput="filterServices()">
+      <button type="button" class="clear-search" id="clearSearch" onclick="clearSearch()" style="display:none">✕</button>
+    </div>
+
+    <!-- Selected chips -->
+    <div id="selectedChips" class="chips-wrap" style="display:none"></div>
+
+    <!-- Services grid -->
+    <div class="svc-grid" id="svcGrid">
+      {% for sid, svc in services.items() %}
+      <label class="svc-card" id="svc-label-{{ sid }}" data-name="{{ svc.name|lower }}">
+        <input type="checkbox" name="services" value="{{ sid }}" onchange="onServiceToggle(this, '{{ sid }}', '{{ svc.name }}', {{ svc.price }})">
+        <div class="svc-card-inner">
+          <span class="svc-card-name">{{ svc.name }}</span>
+          <span class="svc-card-price">₹{{ "%.0f"|format(svc.price) }}</span>
+        </div>
+        <input type="number" name="qty_{{ sid }}" value="1" min="1" class="qty-input" onclick="event.stopPropagation()" title="Quantity">
+      </label>
+      {% endfor %}
+    </div>
+    <div id="noResults" class="no-results" style="display:none">No services found</div>
   </div>
 
-  <button type="submit" class="btn btn-primary">Generate Bill</button>
+  <!-- Payment -->
+  <div class="nb-card">
+    <div class="nb-card-title">💳 Payment</div>
+    <div class="nb-row">
+      <div class="nb-field">
+        <input type="number" name="discount" placeholder="Discount %" min="0" max="100" step="0.1">
+      </div>
+      <div class="nb-field">
+        <select name="payment" required>
+          <option value="Cash">💵 Cash</option>
+          <option value="UPI">📱 UPI</option>
+          <option value="Card">💳 Card</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <button type="submit" class="nb-submit">Generate Bill →</button>
 </form>
 
 <style>
-  .price-edit-input {
-    display: block;
-    width: 90px;
-    padding: 3px 8px;
-    margin-top: 4px;
-    border: 1.5px solid #e8dce4;
-    border-radius: 6px;
-    font-size: 12px;
-    color: #3d1a3a;
-    background: #fdf6f0;
-    outline: none;
-    transition: border-color 0.2s;
-  }
-  .price-edit-input:focus { border-color: #c9a96e; }
-  input.phone-valid { border-color: #28a745 !important; box-shadow: 0 0 0 3px rgba(40,167,69,0.1) !important; }
-  input.phone-invalid { border-color: #dc3545 !important; box-shadow: 0 0 0 3px rgba(220,53,69,0.1) !important; }
+  .nb-form { display:flex; flex-direction:column; gap:16px; max-width:860px; }
+  .nb-card { background:#fff; border-radius:16px; padding:20px; box-shadow:0 2px 12px rgba(61,26,58,0.08); }
+  .nb-card-title { font-size:14px; font-weight:600; color:#3d1a3a; margin-bottom:14px; display:flex; align-items:center; gap:10px; }
+  .nb-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .nb-field input, .nb-field select { width:100%; padding:10px 14px; border:1.5px solid #e8dce4; border-radius:10px; font-size:14px; color:#3d1a3a; background:#fafafa; outline:none; transition:border-color 0.2s; box-sizing:border-box; }
+  .nb-field input:focus, .nb-field select:focus { border-color:#7b3f6e; background:#fff; }
+  .nb-field small { font-size:11px; margin-top:4px; display:block; }
+
+  /* Search */
+  .svc-search-wrap { position:relative; margin-bottom:14px; }
+  .svc-search-icon { position:absolute; left:12px; top:50%; transform:translateY(-50%); font-size:14px; }
+  #svcSearch { width:100%; padding:10px 36px 10px 36px; border:1.5px solid #e8dce4; border-radius:10px; font-size:14px; outline:none; background:#fafafa; box-sizing:border-box; transition:border-color 0.2s; }
+  #svcSearch:focus { border-color:#7b3f6e; background:#fff; }
+  .clear-search { position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:#aaa; font-size:14px; padding:4px; }
+  .clear-search:hover { color:#c0394a; }
+
+  /* Chips */
+  .chips-wrap { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; padding:10px 12px; background:#fdf6f0; border-radius:10px; border:1px solid #f0e0d0; }
+  .chip { display:flex; align-items:center; gap:6px; padding:4px 10px; background:#fff; border:1.5px solid #e8dce4; border-radius:20px; font-size:12px; color:#3d1a3a; }
+  .chip-name { font-weight:500; }
+  .chip-price { color:#7b3f6e; font-weight:600; }
+  .chip-remove { cursor:pointer; color:#aaa; font-size:11px; margin-left:2px; }
+  .chip-remove:hover { color:#c0394a; }
+
+  /* Services grid */
+  .svc-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)); gap:10px; max-height:340px; overflow-y:auto; padding-right:4px; }
+  .svc-grid::-webkit-scrollbar { width:4px; }
+  .svc-grid::-webkit-scrollbar-thumb { background:#e8dce4; border-radius:4px; }
+
+  .svc-card { display:flex; flex-direction:column; gap:6px; padding:12px; border:1.5px solid #e8dce4; border-radius:12px; cursor:pointer; transition:all 0.15s; background:#fafafa; }
+  .svc-card:hover { border-color:#c9a96e; background:#fffbf5; }
+  .svc-card input[type="checkbox"] { display:none; }
+  .svc-card.checked { border-color:#7b3f6e; background:#f5f0ff; box-shadow:0 0 0 3px rgba(123,63,110,0.1); }
+  .svc-card-inner { display:flex; flex-direction:column; gap:2px; }
+  .svc-card-name { font-size:13px; font-weight:500; color:#3d1a3a; line-height:1.3; }
+  .svc-card-price { font-size:12px; color:#7b3f6e; font-weight:600; }
+  .qty-input { width:100%; padding:4px 8px; border:1px solid #e8dce4; border-radius:6px; font-size:12px; text-align:center; background:#fff; outline:none; }
+  .qty-input:focus { border-color:#c9a96e; }
+
+  .no-results { text-align:center; padding:24px; color:#b09aaa; font-size:13px; }
+  .sel-badge { background:#7b3f6e; color:#fff; font-size:11px; font-weight:500; padding:2px 8px; border-radius:20px; }
+
+  /* Submit */
+  .nb-submit { padding:14px; background:linear-gradient(135deg,#3d1a3a,#7b3f6e); color:#fff; border:none; border-radius:12px; font-size:15px; font-weight:600; cursor:pointer; letter-spacing:0.5px; transition:all 0.2s; }
+  .nb-submit:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(61,26,58,0.3); }
+
+  input.phone-valid { border-color:#28a745 !important; }
+  input.phone-invalid { border-color:#dc3545 !important; }
+
+  @media(max-width:600px) { .nb-row { grid-template-columns:1fr; } .svc-grid { grid-template-columns:repeat(auto-fill, minmax(130px,1fr)); } }
 </style>
+
 <script>
+  const selectedServices = {};
+
+  function filterServices() {
+    const q = document.getElementById('svcSearch').value.toLowerCase();
+    const cards = document.querySelectorAll('.svc-card');
+    document.getElementById('clearSearch').style.display = q ? 'block' : 'none';
+    let visible = 0;
+    cards.forEach(card => {
+      const match = card.dataset.name.includes(q);
+      card.style.display = match ? '' : 'none';
+      if (match) visible++;
+    });
+    document.getElementById('noResults').style.display = visible === 0 ? 'block' : 'none';
+  }
+
+  function clearSearch() {
+    document.getElementById('svcSearch').value = '';
+    filterServices();
+    document.getElementById('svcSearch').focus();
+  }
+
+  function onServiceToggle(cb, sid, name, price) {
+    const label = document.getElementById('svc-label-' + sid);
+    if (cb.checked) {
+      selectedServices[sid] = { name, price };
+      label.classList.add('checked');
+    } else {
+      delete selectedServices[sid];
+      label.classList.remove('checked');
+    }
+    renderChips();
+  }
+
+  function renderChips() {
+    const wrap = document.getElementById('selectedChips');
+    const badge = document.getElementById('selected-count');
+    const count = Object.keys(selectedServices).length;
+    wrap.style.display = count ? 'flex' : 'none';
+    badge.style.display = count ? 'inline-block' : 'none';
+    badge.textContent = count + ' selected';
+    wrap.innerHTML = Object.entries(selectedServices).map(([sid, s]) =>
+      `<div class="chip">
+        <span class="chip-name">${s.name}</span>
+        <span class="chip-price">₹${s.price}</span>
+        <span class="chip-remove" onclick="removeService('${sid}')">✕</span>
+      </div>`
+    ).join('');
+  }
+
+  function removeService(sid) {
+    const cb = document.querySelector(`input[name="services"][value="${sid}"]`);
+    if (cb) { cb.checked = false; }
+    document.getElementById('svc-label-' + sid)?.classList.remove('checked');
+    delete selectedServices[sid];
+    renderChips();
+  }
+
   function validatePhone(el) {
     el.value = el.value.replace(/[^0-9]/g, '');
     const msg = document.getElementById('phone-msg');
     if (el.value.length === 10) {
       el.classList.remove('phone-invalid'); el.classList.add('phone-valid');
-      msg.textContent = '✓ Valid number'; msg.style.color = '#28a745';
-    } else {
+      msg.textContent = '✓ Valid'; msg.style.color = '#28a745';
+    } else if (el.value.length > 0) {
       el.classList.remove('phone-valid'); el.classList.add('phone-invalid');
-      msg.textContent = `✗ ${10 - el.value.length} more digit${10 - el.value.length > 1 ? 's' : ''} needed`;
-      msg.style.color = '#dc3545';
-    }
-    if (el.value.length === 0) {
-      el.classList.remove('phone-valid','phone-invalid');
-      msg.textContent = '';
+      msg.textContent = `${10 - el.value.length} more digits needed`; msg.style.color = '#dc3545';
+    } else {
+      el.classList.remove('phone-valid','phone-invalid'); msg.textContent = '';
     }
   }
 </script>

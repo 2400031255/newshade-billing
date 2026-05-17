@@ -136,6 +136,9 @@
         {% if session.get('role') == 'admin' %}
         <a href="/report" class="quick-btn gold">📊<span>Report</span></a>
         <a href="/services" class="quick-btn green">⚙️<span>Services</span></a>
+        <form method="POST" action="/clear-data" onsubmit="return confirm('Clear ALL bills and customers? This cannot be undone.')" style="display:contents">
+          <button type="submit" class="quick-btn" style="background:#fff0f0;color:#c0394a;border-color:#fce4ec;cursor:pointer;font-family:inherit;">🗑️<span>Clear Data</span></button>
+        </form>
         {% endif %}
         <a href="/about" class="quick-btn mauve">🌸<span>About</span></a>
       </div>

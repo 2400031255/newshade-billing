@@ -424,6 +424,15 @@ def backup():
     response.headers["Content-Disposition"] = f"attachment; filename=newshades_backup_{datetime.now().strftime('%Y%m%d_%H%M')}.zip"
     return response
 
+@app.route("/clear-data", methods=["POST"])
+@admin_required
+def clear_data():
+    from storage import _write_json, BILLS_FILE, CUSTOMERS_FILE
+    _write_json(BILLS_FILE, {})
+    _write_json(CUSTOMERS_FILE, {})
+    flash("All bills and customers cleared.", "success")
+    return redirect(url_for("dashboard"))
+
 @app.route("/report", methods=["GET", "POST"])
 @admin_required
 def report():
