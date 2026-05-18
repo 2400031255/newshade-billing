@@ -6,6 +6,8 @@ from typing import List
 class Service:
     name: str
     price: float
+    category: str = "General"
+
 
 @dataclass
 class BillItem:

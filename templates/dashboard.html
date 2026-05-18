@@ -164,7 +164,6 @@
     border-radius:16px; padding:20px; position:relative; overflow:hidden;
     display:flex; align-items:center; gap:14px;
     box-shadow:0 4px 16px rgba(0,0,0,0.08);
-    animation: fadeUp 0.4s ease both;
   }
   .dash-stat-card.purple { background:linear-gradient(135deg,#3d1a3a,#6b2d6b); }
   .dash-stat-card.rose   { background:linear-gradient(135deg,#c0394a,#e8607a); }
@@ -184,7 +183,6 @@
   .dash-card {
     background:#fff; border-radius:16px; padding:20px;
     box-shadow:0 2px 12px rgba(61,26,58,0.08);
-    animation: fadeUp 0.5s ease both;
   }
   .dash-card-header {
     display:flex; justify-content:space-between; align-items:center;
@@ -221,7 +219,7 @@
   .service-bar-row { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
   .sb-name { font-size:12px; color:#3d1a3a; width:110px; flex-shrink:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .sb-bar-wrap { flex:1; background:#f0e8f8; border-radius:20px; height:8px; overflow:hidden; }
-  .sb-bar { height:100%; background:linear-gradient(90deg,#7b3f6e,#e8a0b0); border-radius:20px; transition:width 0.6s ease; }
+  .sb-bar { height:100%; background:linear-gradient(90deg,#7b3f6e,#e8a0b0); border-radius:20px; }
   .sb-count { font-size:12px; font-weight:600; color:#7b3f6e; width:24px; text-align:right; }
 
   /* Payment rows */
@@ -242,7 +240,7 @@
   .quick-btn.gold   { background:#fffbf0; color:#a07820; border-color:#fce8b0; }
   .quick-btn.green  { background:#f0fff4; color:#1a6b3a; border-color:#c8e6c9; }
   .quick-btn.mauve  { background:#fdf0f8; color:#7b3f6e; border-color:#f0d0e8; }
-  .quick-btn:hover  { transform:translateY(-3px); box-shadow:0 6px 16px rgba(0,0,0,0.1); }
+  .quick-btn:hover  { box-shadow:0 4px 12px rgba(0,0,0,0.1); }
 
   /* Empty state */
   .dash-empty { text-align:center; padding:24px 16px; color:#b09aaa; }
@@ -251,13 +249,9 @@
 
   /* Animation */
   @keyframes fadeUp {
-    from { opacity:0; transform:translateY(16px); }
-    to   { opacity:1; transform:translateY(0); }
+    from { opacity:0; }
+    to   { opacity:1; }
   }
-  .dash-stats .dash-stat-card:nth-child(1) { animation-delay:0.05s; }
-  .dash-stats .dash-stat-card:nth-child(2) { animation-delay:0.1s; }
-  .dash-stats .dash-stat-card:nth-child(3) { animation-delay:0.15s; }
-  .dash-stats .dash-stat-card:nth-child(4) { animation-delay:0.2s; }
 
   @media(max-width:900px) {
     .dash-grid { grid-template-columns:1fr; }

@@ -140,24 +140,24 @@ nav a:hover, nav a.active { background: #4a2d7a; color: #fff; border-left: 3px s
 /* ── Performance & Smoothness ── */
 *, *::before, *::after { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
 html { scroll-behavior: smooth; }
-a, button, .btn, .service-item, .role-card, nav a { will-change: transform; }
-img { will-change: auto; }
-.content { will-change: auto; }
 
-/* Page load fade-in */
-.content { animation: pageIn 0.3s ease both; }
-@keyframes pageIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+/* Only GPU-composited properties on interactive elements */
+nav a, .btn, .btn-primary, .btn-secondary { will-change: opacity; }
 
-/* Smooth nav transitions */
-nav a { transition: background 0.15s ease, color 0.15s ease, border-left 0.15s ease; }
+/* Page load — subtle, fast */
+.content { animation: pageIn 0.18s ease both; }
+@keyframes pageIn { from { opacity:0; } to { opacity:1; } }
 
-/* Smooth table rows */
-.data-table tr { transition: background 0.15s ease; }
+/* Smooth nav — only opacity+background, no layout */
+nav a { transition: background 0.12s ease, color 0.12s ease; }
 
-/* Smooth buttons */
-.btn { transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease; }
-.btn:active { transform: scale(0.97); }
+/* Smooth table rows — background only */
+.data-table tr { transition: background 0.1s ease; }
 
-/* Smooth alerts - auto hide */
-.alert { animation: alertIn 0.3s ease both; }
-@keyframes alertIn { from { opacity:0; transform:translateX(-10px); } to { opacity:1; transform:translateX(0); } }
+/* Smooth buttons — GPU only */
+.btn { transition: background 0.12s ease, box-shadow 0.12s ease; }
+.btn:active { opacity: 0.85; }
+
+/* Alerts — fast slide in */
+.alert { animation: alertIn 0.2s ease both; }
+@keyframes alertIn { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:translateY(0); } }

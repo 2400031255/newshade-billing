@@ -1,6 +1,13 @@
-import json, os
+import json, os, re
 from models import Customer, Bill, BillItem, Service
 from datetime import datetime
+
+_SAFE_ID = re.compile(r'^[A-Za-z0-9_\-]{1,64}$')
+
+def _safe_id(value: str) -> str:
+    if not _SAFE_ID.match(str(value)):
+        raise ValueError(f"Unsafe id: {value}")
+    return value
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 _render_data = os.environ.get("RENDER_DATA_DIR")
@@ -58,9 +65,10 @@ def get_customer(customer_id: str):
         if not c: return None
         return Customer(customer_id, c["name"], c["phone"], c.get("visit_history", []))
     data = _read_json(CUSTOMERS_FILE)
-    if customer_id not in data: return None
-    c = data[customer_id]
-    return Customer(customer_id, c["name"], c["phone"], c.get("visit_history", []))
+    cid = _safe_id(customer_id)
+    if cid not in data: return None
+    c = data[cid]
+    return Customer(cid, c["name"], c["phone"], c.get("visit_history", []))
 
 def get_all_customers():
     if _use_mongo():
@@ -125,7 +133,7 @@ def save_services(services: dict):
 
 def delete_service(sid: str):
     data = load_services()
-    data.pop(sid, None)
+    data.pop(_safe_id(sid), None)
     save_services(data)
 
 # ── Admin Storage ─────────────────────────────────────────────────────────────

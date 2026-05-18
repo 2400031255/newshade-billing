@@ -34,10 +34,24 @@
     <!-- Selected chips -->
     <div id="selectedChips" class="chips-wrap" style="display:none"></div>
 
+    <!-- Category tabs -->
+    {% set categories = [] %}
+    {% for svc in services.values() %}
+      {% if svc.category not in categories %}{% set _ = categories.append(svc.category) %}{% endif %}
+    {% endfor %}
+    <div class="svc-tabs">
+      <button type="button" class="svc-tab active" onclick="switchTab('all',this)">All</button>
+      {% for cat in categories|sort %}
+      <button type="button" class="svc-tab" onclick="switchTab('{{ cat|lower|replace(' ','_') }}',this)">{{ cat }}</button>
+      {% endfor %}
+    </div>
+
     <!-- Services grid -->
     <div class="svc-grid" id="svcGrid">
       {% for sid, svc in services.items() %}
-      <label class="svc-card" id="svc-label-{{ sid }}" data-name="{{ svc.name|lower }}">
+      <label class="svc-card" id="svc-label-{{ sid }}"
+             data-name="{{ svc.name|lower }}"
+             data-category="{{ svc.category|lower|replace(' ','_') }}">
         <input type="checkbox" name="services" value="{{ sid }}" onchange="onServiceToggle(this, '{{ sid }}', '{{ svc.name }}', {{ svc.price }})">
         <div class="svc-card-inner">
           <span class="svc-card-name">{{ svc.name }}</span>
@@ -79,6 +93,13 @@
   .nb-field input:focus, .nb-field select:focus { border-color:#7b3f6e; background:#fff; }
   .nb-field small { font-size:11px; margin-top:4px; display:block; }
 
+  /* Category tabs */
+  .svc-tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+  .svc-tab { padding:5px 14px; border-radius:20px; border:1.5px solid #e8dce4; background:#fafafa; color:#7b3f6e; font-size:12px; font-weight:500; cursor:pointer; transition:background 0.12s, color 0.12s; }
+  .svc-tab:hover { border-color:#7b3f6e; }
+  .svc-tab.active { background:#7b3f6e; color:#fff; border-color:#7b3f6e; }
+
+
   /* Search */
   .svc-search-wrap { position:relative; margin-bottom:14px; }
   .svc-search-icon { position:absolute; left:12px; top:50%; transform:translateY(-50%); font-size:14px; }
@@ -100,7 +121,7 @@
   .svc-grid::-webkit-scrollbar { width:4px; }
   .svc-grid::-webkit-scrollbar-thumb { background:#e8dce4; border-radius:4px; }
 
-  .svc-card { display:flex; flex-direction:column; gap:6px; padding:12px; border:1.5px solid #e8dce4; border-radius:12px; cursor:pointer; transition:all 0.15s; background:#fafafa; }
+  .svc-card { display:flex; flex-direction:column; gap:6px; padding:12px; border:1.5px solid #e8dce4; border-radius:12px; cursor:pointer; background:#fafafa; transition:border-color 0.12s, background 0.12s; }
   .svc-card:hover { border-color:#c9a96e; background:#fffbf5; }
   .svc-card input[type="checkbox"] { display:none; }
   .svc-card.checked { border-color:#7b3f6e; background:#f5f0ff; box-shadow:0 0 0 3px rgba(123,63,110,0.1); }
@@ -114,8 +135,8 @@
   .sel-badge { background:#7b3f6e; color:#fff; font-size:11px; font-weight:500; padding:2px 8px; border-radius:20px; }
 
   /* Submit */
-  .nb-submit { padding:14px; background:linear-gradient(135deg,#3d1a3a,#7b3f6e); color:#fff; border:none; border-radius:12px; font-size:15px; font-weight:600; cursor:pointer; letter-spacing:0.5px; transition:all 0.2s; }
-  .nb-submit:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(61,26,58,0.3); }
+  .nb-submit { padding:14px; background:linear-gradient(135deg,#3d1a3a,#7b3f6e); color:#fff; border:none; border-radius:12px; font-size:15px; font-weight:600; cursor:pointer; letter-spacing:0.5px; transition:box-shadow 0.15s; }
+  .nb-submit:hover { box-shadow:0 6px 20px rgba(61,26,58,0.3); }
 
   input.phone-valid { border-color:#28a745 !important; }
   input.phone-invalid { border-color:#dc3545 !important; }
@@ -126,17 +147,34 @@
 <script>
   const selectedServices = {};
 
-  function filterServices() {
+  let activeTab = 'all';
+
+  function switchTab(tab, btn) {
+    activeTab = tab;
+    document.querySelectorAll('.svc-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    applyTabFilter();
+  }
+
+  function applyTabFilter() {
     const q = document.getElementById('svcSearch').value.toLowerCase();
     const cards = document.querySelectorAll('.svc-card');
-    document.getElementById('clearSearch').style.display = q ? 'block' : 'none';
     let visible = 0;
     cards.forEach(card => {
-      const match = card.dataset.name.includes(q);
-      card.style.display = match ? '' : 'none';
-      if (match) visible++;
+      const nameMatch = !q || card.dataset.name.includes(q);
+      let tabMatch = true;
+      if (activeTab !== 'all') tabMatch = card.dataset.category === activeTab;
+      const show = nameMatch && tabMatch;
+      card.style.display = show ? '' : 'none';
+      if (show) visible++;
     });
     document.getElementById('noResults').style.display = visible === 0 ? 'block' : 'none';
+  }
+
+  function filterServices() {
+    const q = document.getElementById('svcSearch').value.toLowerCase();
+    document.getElementById('clearSearch').style.display = q ? 'block' : 'none';
+    applyTabFilter();
   }
 
   function clearSearch() {

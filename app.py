@@ -15,8 +15,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "newshades-secret-2024")
 
 @app.errorhandler(500)
 def internal_error(e):
-    import traceback
-    return f"<pre>500 Error:\n{traceback.format_exc()}</pre>", 500
+    return render_template("login.html"), 500
 
 ADMIN_FILE = os.path.join(os.environ.get("SALON_DATA_DIR") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "data"), "admin.json")
 
@@ -181,8 +180,11 @@ def new_bill():
             qty = int(request.form.get(f"qty_{sid}", 1) or 1)
             items.append(BillItem(get_services()[sid], qty))
 
-        discount = float(request.form.get("discount", 0) or 0)
-        if math.isnan(discount) or math.isinf(discount) or not (0 <= discount <= 100):
+        try:
+            discount = float(request.form.get("discount", 0) or 0)
+            if math.isnan(discount) or math.isinf(discount) or not (0 <= discount <= 100):
+                discount = 0.0
+        except ValueError:
             discount = 0.0
         payment = request.form.get("payment", "Cash")
 
@@ -241,10 +243,14 @@ def add_service():
     data = load_services() or {sid: {"name": s["name"], "price": s["price"]} for sid, s in DEFAULTS.items()}
     new_id = str(max(int(k) for k in data.keys()) + 1)
     name = request.form.get("name", "").strip()
-    price = float(request.form.get("price", 0) or 0)
-    if math.isnan(price) or math.isinf(price) or price < 0: price = 0.0
+    try:
+        price = float(request.form.get("price", 0) or 0)
+        if math.isnan(price) or math.isinf(price) or price < 0: price = 0.0
+    except ValueError:
+        price = 0.0
+    category = request.form.get("category", "General").strip() or "General"
     if name:
-        data[new_id] = {"name": name, "price": price}
+        data[new_id] = {"name": name, "price": price, "category": category}
         save_services(data)
         flash(f"Service '{name}' added.", "success")
     return redirect(url_for("services_page"))
@@ -255,8 +261,12 @@ def edit_service(sid):
     data = load_services() or {s: {"name": v["name"], "price": v["price"]} for s, v in DEFAULTS.items()}
     if sid in data:
         data[sid]["name"] = request.form.get("name", data[sid]["name"]).strip()
-        data[sid]["price"] = float(request.form.get("price", data[sid]["price"]) or 0)
-        if math.isnan(data[sid]["price"]) or math.isinf(data[sid]["price"]) or data[sid]["price"] < 0: data[sid]["price"] = 0.0
+        try:
+            data[sid]["price"] = float(request.form.get("price", data[sid]["price"]) or 0)
+            if math.isnan(data[sid]["price"]) or math.isinf(data[sid]["price"]) or data[sid]["price"] < 0: data[sid]["price"] = 0.0
+        except ValueError:
+            data[sid]["price"] = 0.0
+        data[sid]["category"] = request.form.get("category", data[sid].get("category", "General")).strip() or "General"
         save_services(data)
         flash("Service updated.", "success")
     return redirect(url_for("services_page"))
@@ -447,4 +457,5 @@ def report():
                            revenue=revenue, payment_summary=payment_summary)
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", debug=False, port=8080)
+    debug = os.environ.get("FLASK_DEBUG", "0") == "1"
+    app.run(host="127.0.0.1", debug=debug, port=8080)

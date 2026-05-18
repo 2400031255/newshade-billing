@@ -22,8 +22,8 @@ def get_services():
     from storage import load_services
     data = load_services()
     if not data:
-        return {sid: Service(s["name"], s["price"]) for sid, s in DEFAULTS.items()}
-    return {sid: Service(s["name"], s["price"]) for sid, s in data.items()}
+        return {sid: Service(s["name"], s["price"], s.get("category", "General")) for sid, s in DEFAULTS.items()}
+    return {sid: Service(s["name"], s["price"], s.get("category", "General")) for sid, s in data.items()}
 
 # Keep SERVICES as a module-level accessor for backward compat
 class _ServicesProxy(dict):
