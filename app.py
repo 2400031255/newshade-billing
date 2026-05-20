@@ -498,6 +498,112 @@ def backup_settings():
         return redirect(url_for("backup_settings"))
     return render_template("backup_settings.html", backup_dir=backup_dir, last_backups=last_backups)
 
+# ── ESC/POS Direct Print ─────────────────────────────────────────────────────
+
+@app.route("/bill/<bid>/thermal", methods=["POST"])
+@employee_or_admin_required
+def thermal_print(bid):
+    from storage import get_all_bills
+    bills = get_all_bills()
+    if bid not in bills:
+        return jsonify({"error": "Bill not found"}), 404
+    b = bills[bid]
+    customer = get_customer(b["customer_id"])
+
+    try:
+        from escpos.printer import Usb, Win32Raw
+        import escpos.printer as ep
+
+        # Try to find printer - Win32Raw uses printer name on Windows
+        printer_name = request.form.get("printer", "")
+        try:
+            p = Win32Raw(printer_name) if printer_name else Win32Raw()
+        except Exception:
+            return jsonify({"error": "Printer not found. Make sure PSF307 is set as default printer."}), 500
+
+        # Header
+        p.set(align="center", bold=True, double_height=True, double_width=True)
+        p.text("NEWSHADES FAMILY SALON\n")
+        p.set(align="center", bold=False, double_height=False, double_width=False)
+        p.text("Look Beautiful, Feel Beautiful\n")
+        p.text("-" * 32 + "\n")
+        p.set(align="center", bold=True)
+        p.text("PAYMENT RECEIPT\n")
+        p.set(bold=False)
+        p.text("-" * 32 + "\n")
+
+        # Bill info
+        p.set(align="left")
+        p.text(f"Bill No  : {bid}\n")
+        p.text(f"Date     : {b['date'][:10]}\n")
+        p.text(f"Time     : {b['date'][11:16]}\n")
+        p.text(f"Customer : {customer.name if customer else 'Walk-in'}\n")
+        p.text(f"Mobile   : {customer.phone if customer else '-'}\n")
+        p.text("-" * 32 + "\n")
+
+        # Services
+        p.set(bold=True)
+        p.text(f"{'SERVICE':<22}{'AMOUNT':>10}\n")
+        p.set(bold=False)
+        p.text("-" * 32 + "\n")
+
+        subtotal = 0
+        for item in b["items"]:
+            amt = item["service_price"] * item["quantity"]
+            subtotal += amt
+            name = item["service_name"]
+            qty = f" x{item['quantity']}" if item["quantity"] > 1 else ""
+            name_str = (name + qty)[:22]
+            p.text(f"{name_str:<22}{('Rs.' + str(int(amt))):>10}\n")
+
+        p.text("-" * 32 + "\n")
+
+        # Discount
+        if b["discount"] > 0:
+            p.text(f"{'Subtotal':<22}{'Rs.' + str(int(subtotal)):>10}\n")
+            disc_amt = subtotal * b["discount"] / 100
+            p.text(f"{'Discount(' + str(b['discount']) + '%)':<22}{'-Rs.' + str(int(disc_amt)):>10}\n")
+            p.text("-" * 32 + "\n")
+
+        # Total
+        p.set(bold=True, double_height=True)
+        p.text(f"{'TOTAL':<16}{'Rs.' + str(int(b['total'])):>16}\n")
+        p.set(bold=False, double_height=False)
+        p.text("=" * 32 + "\n")
+
+        # Payment
+        p.text(f"Payment  : {b['payment_method']}\n")
+        p.text(f"Status   : Paid\n")
+        p.text("-" * 32 + "\n")
+
+        # Footer
+        p.set(align="center")
+        p.text("Thank You! Visit Again\n")
+        p.text("Newshades Family Salon\n")
+        p.text("Look Beautiful, Feel Beautiful\n")
+        p.text("\n\n")
+
+        # Auto cut
+        p.cut()
+
+        return jsonify({"success": True})
+
+    except ImportError:
+        return jsonify({"error": "escpos not installed. Run INSTALL.bat again."}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/printers")
+@employee_or_admin_required
+def get_printers():
+    try:
+        import win32print
+        printers = [p[2] for p in win32print.EnumPrinters(win32print.PRINTER_ENUM_LOCAL | win32print.PRINTER_ENUM_CONNECTIONS)]
+        default = win32print.GetDefaultPrinter()
+        return jsonify({"printers": printers, "default": default})
+    except Exception:
+        return jsonify({"printers": [], "default": ""})
+
 @app.route("/clear-data", methods=["POST"])
 @admin_required
 def clear_data():

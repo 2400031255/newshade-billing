@@ -4,8 +4,16 @@
 <div class="receipt-page">
 
   <div class="receipt-actions no-print">
-    <button onclick="window.print()" class="btn-print">🖨 Print Receipt</button>
+    <button onclick="window.print()" class="btn-print">🖨 Browser Print</button>
+    <button onclick="thermalPrint()" class="btn-thermal">⚡ Direct Print (Auto-Cut)</button>
     <a href="/bill/new" class="btn-new no-print">+ New Bill</a>
+  </div>
+
+  <!-- Printer selector (hidden by default) -->
+  <div id="printerBox" class="printer-box no-print" style="display:none">
+    <select id="printerSelect"><option>Loading printers...</option></select>
+    <button onclick="confirmPrint()" class="btn-print">Print Now</button>
+    <button onclick="document.getElementById('printerBox').style.display='none'" class="btn-new">Cancel</button>
   </div>
 
   <div class="thermal-wrap">
@@ -124,7 +132,24 @@
     font-size: 14px; font-weight: 500; text-decoration: none;
     transition: all 0.2s;
   }
-  .btn-new:hover { border-color: #7b3f6e; background: #fdf6f0; }
+  .btn-thermal {
+    padding: 12px 28px;
+    background: linear-gradient(135deg, #1a6b3a, #2da05a);
+    color: #fff; border: none; border-radius: 10px;
+    font-size: 14px; font-weight: 500; letter-spacing: 1px;
+    cursor: pointer; box-shadow: 0 4px 20px rgba(26,107,58,0.3);
+    transition: all 0.2s;
+  }
+  .btn-thermal:hover { transform: translateY(-2px); box-shadow: 0 6px 28px rgba(26,107,58,0.4); }
+  .printer-box {
+    display: flex; gap: 10px; align-items: center;
+    background: #fff; padding: 14px 20px; border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.1); margin-bottom: 16px;
+  }
+  .printer-box select {
+    padding: 8px 12px; border: 1.5px solid #e8dce4; border-radius: 8px;
+    font-size: 13px; outline: none; min-width: 200px;
+  }
 
   /* Thermal wrap shadow */
   .thermal-wrap {
@@ -263,4 +288,53 @@
   }
 </style>
 
+<script>
+  const BID = "{{ bill_id }}";
+
+  function thermalPrint() {
+    const box = document.getElementById('printerBox');
+    box.style.display = 'flex';
+    fetch('/printers')
+      .then(r => r.json())
+      .then(data => {
+        const sel = document.getElementById('printerSelect');
+        if (data.printers.length === 0) {
+          sel.innerHTML = '<option>No printers found - use Browser Print</option>';
+          return;
+        }
+        sel.innerHTML = data.printers.map(p =>
+          `<option ${p === data.default ? 'selected' : ''}>${p}</option>`
+        ).join('');
+      })
+      .catch(() => {
+        document.getElementById('printerSelect').innerHTML = '<option>Could not load printers</option>';
+      });
+  }
+
+  function confirmPrint() {
+    const printer = document.getElementById('printerSelect').value;
+    const btn = event.target;
+    btn.textContent = 'Printing...';
+    btn.disabled = true;
+
+    const fd = new FormData();
+    fd.append('printer', printer);
+
+    fetch(`/bill/${BID}/thermal`, { method: 'POST', body: fd })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          btn.textContent = '✓ Printed!';
+          setTimeout(() => { document.getElementById('printerBox').style.display = 'none'; btn.textContent = 'Print Now'; btn.disabled = false; }, 2000);
+        } else {
+          alert('Print failed: ' + data.error);
+          btn.textContent = 'Print Now'; btn.disabled = false;
+        }
+      })
+      .catch(() => {
+        alert('Connection error. Try Browser Print instead.');
+        btn.textContent = 'Print Now'; btn.disabled = false;
+      });
+  }
+</script>
 {% endblock %}

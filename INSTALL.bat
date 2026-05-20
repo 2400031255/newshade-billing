@@ -62,7 +62,7 @@ echo.
 :: ── Step 3: Install dependencies ─────────────────────────────────────────
 echo   [2/5] Installing dependencies...
 "%PYEXE%" -m pip install --upgrade pip -q
-"%PYEXE%" -m pip install flask werkzeug reportlab -q
+"%PYEXE%" -m pip install flask werkzeug reportlab python-escpos pywin32 -q
 
 if %errorlevel% neq 0 (
     color 0C
