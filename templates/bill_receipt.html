@@ -292,6 +292,33 @@
   const BID = "{{ bill_id }}";
 
   function thermalPrint() {
+    const btn = event.target;
+    btn.textContent = 'Printing...';
+    btn.disabled = true;
+
+    fetch(`/bill/${BID}/thermal`, { method: 'POST', body: new FormData() })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          btn.textContent = '\u2713 Printed!';
+          setTimeout(() => { btn.textContent = '\u26a1 Direct Print (Auto-Cut)'; btn.disabled = false; }, 2000);
+        } else if (data.error && data.error.includes('not found')) {
+          // No saved printer - show selector
+          btn.textContent = '\u26a1 Direct Print (Auto-Cut)';
+          btn.disabled = false;
+          showPrinterSelector();
+        } else {
+          alert('Print failed: ' + data.error);
+          btn.textContent = '\u26a1 Direct Print (Auto-Cut)'; btn.disabled = false;
+        }
+      })
+      .catch(() => {
+        alert('Connection error. Try Browser Print instead.');
+        btn.textContent = '\u26a1 Direct Print (Auto-Cut)'; btn.disabled = false;
+      });
+  }
+
+  function showPrinterSelector() {
     const box = document.getElementById('printerBox');
     box.style.display = 'flex';
     fetch('/printers')
@@ -299,15 +326,12 @@
       .then(data => {
         const sel = document.getElementById('printerSelect');
         if (data.printers.length === 0) {
-          sel.innerHTML = '<option>No printers found - use Browser Print</option>';
+          sel.innerHTML = '<option>No printers found</option>';
           return;
         }
         sel.innerHTML = data.printers.map(p =>
           `<option ${p === data.default ? 'selected' : ''}>${p}</option>`
         ).join('');
-      })
-      .catch(() => {
-        document.getElementById('printerSelect').innerHTML = '<option>Could not load printers</option>';
       });
   }
 
@@ -316,23 +340,22 @@
     const btn = event.target;
     btn.textContent = 'Printing...';
     btn.disabled = true;
-
     const fd = new FormData();
     fd.append('printer', printer);
-
     fetch(`/bill/${BID}/thermal`, { method: 'POST', body: fd })
       .then(r => r.json())
       .then(data => {
         if (data.success) {
-          btn.textContent = '✓ Printed!';
-          setTimeout(() => { document.getElementById('printerBox').style.display = 'none'; btn.textContent = 'Print Now'; btn.disabled = false; }, 2000);
+          btn.textContent = '\u2713 Printed!';
+          document.getElementById('printerBox').style.display = 'none';
+          setTimeout(() => { btn.textContent = 'Print Now'; btn.disabled = false; }, 2000);
         } else {
-          alert('Print failed: ' + data.error);
+          alert('Print failed: ' + data.error + '\n\nGo to Settings \u2192 Printer Settings to configure.');
           btn.textContent = 'Print Now'; btn.disabled = false;
         }
       })
       .catch(() => {
-        alert('Connection error. Try Browser Print instead.');
+        alert('Connection error.');
         btn.textContent = 'Print Now'; btn.disabled = false;
       });
   }

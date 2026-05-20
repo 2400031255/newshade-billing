@@ -515,11 +515,17 @@ def thermal_print(bid):
         import escpos.printer as ep
 
         # Try to find printer - Win32Raw uses printer name on Windows
-        printer_name = request.form.get("printer", "")
+        from storage import DATA_DIR
+        cfg_file = os.path.join(DATA_DIR, "printer_config.json")
+        saved_printer = ""
+        if os.path.exists(cfg_file):
+            with open(cfg_file) as f:
+                saved_printer = json.load(f).get("printer", "")
+        printer_name = request.form.get("printer", "") or saved_printer
         try:
             p = Win32Raw(printer_name) if printer_name else Win32Raw()
         except Exception:
-            return jsonify({"error": "Printer not found. Make sure PSF307 is set as default printer."}), 500
+            return jsonify({"error": "Printer not found. Go to Settings → Printer Settings to configure."}), 500
 
         # Header
         p.set(align="center", bold=True, double_height=True, double_width=True)
@@ -592,6 +598,29 @@ def thermal_print(bid):
         return jsonify({"error": "escpos not installed. Run INSTALL.bat again."}), 500
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@app.route("/printer-settings", methods=["GET", "POST"])
+@admin_required
+def printer_settings():
+    from storage import DATA_DIR
+    cfg_file = os.path.join(DATA_DIR, "printer_config.json")
+    saved_printer = ""
+    if os.path.exists(cfg_file):
+        with open(cfg_file) as f:
+            saved_printer = json.load(f).get("printer", "")
+    printers = []
+    try:
+        import win32print
+        printers = [p[2] for p in win32print.EnumPrinters(win32print.PRINTER_ENUM_LOCAL | win32print.PRINTER_ENUM_CONNECTIONS)]
+    except Exception:
+        pass
+    if request.method == "POST":
+        selected = request.form.get("printer", "").strip()
+        with open(cfg_file, "w") as f:
+            json.dump({"printer": selected}, f)
+        flash(f"Printer set to: {selected}", "success")
+        return redirect(url_for("printer_settings"))
+    return render_template("printer_settings.html", printers=printers, saved_printer=saved_printer)
 
 @app.route("/printers")
 @employee_or_admin_required

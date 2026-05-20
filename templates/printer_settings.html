@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="page-title">🖨️ Printer Settings</h1>
+
+<div style="max-width:520px;">
+  <div class="ps-card">
+    <div class="ps-title">Select Thermal Printer</div>
+    <p class="ps-desc">Choose your PSF307 printer once — it will be used automatically every time you print a bill.</p>
+
+    {% if printers %}
+    <form method="POST" class="ps-form">
+      <label class="ps-label">Available Printers</label>
+      <select name="printer" class="ps-select">
+        {% for p in printers %}
+        <option value="{{ p }}" {{ 'selected' if p == saved_printer }}>{{ p }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="ps-btn">💾 Save Printer</button>
+    </form>
+    {% else %}
+    <div class="ps-empty">
+      <div style="font-size:32px;margin-bottom:8px;">🖨️</div>
+      <p>No printers found on this computer.</p>
+      <p style="font-size:12px;margin-top:6px;color:#aaa;">Make sure PSF307 is connected and driver is installed.</p>
+    </div>
+    {% endif %}
+
+    {% if saved_printer %}
+    <div class="ps-current">
+      <span class="ps-current-label">Current Printer:</span>
+      <span class="ps-current-name">✅ {{ saved_printer }}</span>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="ps-card" style="margin-top:16px;">
+    <div class="ps-title">📋 How to change printer</div>
+    <div class="ps-steps">
+      <div class="ps-step">1. Connect new printer to laptop via USB</div>
+      <div class="ps-step">2. Install printer driver if needed</div>
+      <div class="ps-step">3. Come back here → select new printer → Save</div>
+      <div class="ps-step">4. All future bills will print to new printer ✅</div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .ps-card { background:#fff; border-radius:16px; padding:24px; box-shadow:0 2px 12px rgba(61,26,58,0.08); }
+  .ps-title { font-size:14px; font-weight:600; color:#3d1a3a; margin-bottom:10px; }
+  .ps-desc { font-size:13px; color:#666; margin-bottom:18px; line-height:1.6; }
+  .ps-label { font-size:11px; font-weight:500; color:#8a7a85; text-transform:uppercase; letter-spacing:1px; display:block; margin-bottom:8px; }
+  .ps-form { display:flex; flex-direction:column; gap:12px; }
+  .ps-select { padding:11px 14px; border:1.5px solid #e8dce4; border-radius:10px; font-size:14px; outline:none; background:#fafafa; width:100%; }
+  .ps-select:focus { border-color:#7b3f6e; background:#fff; }
+  .ps-btn { padding:12px; background:linear-gradient(135deg,#3d1a3a,#7b3f6e); color:#fff; border:none; border-radius:10px; font-size:14px; font-weight:600; cursor:pointer; transition:all 0.2s; }
+  .ps-btn:hover { transform:translateY(-1px); box-shadow:0 4px 12px rgba(61,26,58,0.25); }
+  .ps-current { margin-top:16px; padding:12px 14px; background:#f0fff4; border-radius:10px; border:1px solid #c8e6c9; display:flex; align-items:center; gap:10px; }
+  .ps-current-label { font-size:12px; color:#666; }
+  .ps-current-name { font-size:13px; font-weight:600; color:#2e7d32; }
+  .ps-empty { text-align:center; padding:20px; color:#b09aaa; font-size:13px; }
+  .ps-steps { display:flex; flex-direction:column; gap:10px; }
+  .ps-step { font-size:13px; color:#444; padding:10px 14px; background:#fafafa; border-radius:8px; border-left:3px solid #7b3f6e; }
+</style>
+{% endblock %}
