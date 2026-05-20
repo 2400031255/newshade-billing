@@ -415,13 +415,50 @@ def export_pdf():
     response.headers["Content-Disposition"] = f"attachment; filename=report_{month_str}.pdf"
     return response
 
-# ── Auto Backup ───────────────────────────────────────────────────────────────
+# ── Backup ───────────────────────────────────────────────────────────────────
+
+def _do_backup(dest_dir=None):
+    """Create a zip backup. Returns (zip_path, filename) or raises."""
+    import zipfile
+    from storage import DATA_DIR
+    fname = f"newshades_backup_{datetime.now().strftime('%Y%m%d_%H%M')}.zip"
+    if dest_dir:
+        os.makedirs(dest_dir, exist_ok=True)
+        zip_path = os.path.join(dest_dir, fname)
+        with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
+            for f in ["customers.json", "bills.json", "services.json", "admin.json"]:
+                fp = os.path.join(DATA_DIR, f)
+                if os.path.exists(fp):
+                    zf.write(fp, f)
+        # Keep only last 10 backups
+        backups = sorted([f for f in os.listdir(dest_dir) if f.startswith("newshades_backup")])
+        for old in backups[:-10]:
+            try: os.remove(os.path.join(dest_dir, old))
+            except: pass
+        return zip_path, fname
+    return None, fname
+
+def _get_backup_dir():
+    """Return backup folder path from config or default."""
+    from storage import DATA_DIR
+    cfg_file = os.path.join(DATA_DIR, "backup_config.json")
+    if os.path.exists(cfg_file):
+        with open(cfg_file) as f:
+            cfg = json.load(f)
+        return cfg.get("backup_dir", "")
+    return ""
 
 @app.route("/backup")
 @admin_required
 def backup():
     import zipfile, io
     from storage import DATA_DIR
+    # Also auto-save to configured folder
+    bdir = _get_backup_dir()
+    if bdir and os.path.isdir(bdir):
+        try: _do_backup(bdir)
+        except: pass
+    # Always download zip
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
         for fname in ["customers.json", "bills.json", "services.json", "admin.json"]:
@@ -433,6 +470,33 @@ def backup():
     response.headers["Content-Type"] = "application/zip"
     response.headers["Content-Disposition"] = f"attachment; filename=newshades_backup_{datetime.now().strftime('%Y%m%d_%H%M')}.zip"
     return response
+
+@app.route("/backup/settings", methods=["GET", "POST"])
+@admin_required
+def backup_settings():
+    from storage import DATA_DIR
+    cfg_file = os.path.join(DATA_DIR, "backup_config.json")
+    backup_dir = _get_backup_dir()
+    last_backups = []
+    if backup_dir and os.path.isdir(backup_dir):
+        last_backups = sorted([f for f in os.listdir(backup_dir) if f.startswith("newshades_backup")], reverse=True)[:5]
+    if request.method == "POST":
+        new_dir = request.form.get("backup_dir", "").strip()
+        with open(cfg_file, "w") as f:
+            json.dump({"backup_dir": new_dir}, f)
+        if new_dir and not os.path.isdir(new_dir):
+            flash(f"Folder not found: {new_dir}", "error")
+        else:
+            flash("Backup folder saved!", "success")
+            # Do an immediate backup
+            if new_dir:
+                try:
+                    _do_backup(new_dir)
+                    flash("First backup created successfully!", "success")
+                except Exception as e:
+                    flash(f"Backup failed: {e}", "error")
+        return redirect(url_for("backup_settings"))
+    return render_template("backup_settings.html", backup_dir=backup_dir, last_backups=last_backups)
 
 @app.route("/clear-data", methods=["POST"])
 @admin_required

@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="page-title">💾 Backup Settings</h1>
+
+<div class="bs-grid">
+
+  <!-- Setup Card -->
+  <div class="bs-card">
+    <div class="bs-card-title">📁 Auto-Backup Folder</div>
+    <p class="bs-desc">Set a folder where backups are saved automatically every time you click Backup Data. Use your <strong>Google Drive</strong> or <strong>USB</strong> folder path for automatic cloud backup.</p>
+
+    <form method="POST" class="bs-form">
+      <label class="bs-label">Backup Folder Path</label>
+      <input type="text" name="backup_dir" value="{{ backup_dir }}"
+        placeholder="e.g. C:\Users\tarun\Google Drive\SalonBackup">
+      <div class="bs-hint">
+        💡 <strong>Google Drive tip:</strong> Install Google Drive on the laptop, then paste the Google Drive folder path above. Backups will auto-sync to cloud.
+      </div>
+      <div class="bs-btns">
+        <button type="submit" class="bs-btn primary">Save & Backup Now</button>
+        <a href="/backup" class="bs-btn secondary">⬇️ Download Backup</a>
+      </div>
+    </form>
+  </div>
+
+  <!-- Recent Backups -->
+  <div class="bs-card">
+    <div class="bs-card-title">🕐 Recent Backups</div>
+    {% if last_backups %}
+      <div class="bs-backup-list">
+        {% for b in last_backups %}
+        <div class="bs-backup-item">
+          <span class="bs-backup-icon">📦</span>
+          <span class="bs-backup-name">{{ b }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      <p class="bs-hint" style="margin-top:12px;">Last 10 backups are kept automatically. Older ones are deleted.</p>
+    {% else %}
+      <div class="bs-empty">
+        <div style="font-size:32px;margin-bottom:8px;">📭</div>
+        <p>No backups yet in the configured folder.</p>
+        <p style="font-size:12px;margin-top:4px;">Set a folder above and click Save & Backup Now.</p>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- How to setup Google Drive -->
+  <div class="bs-card bs-full">
+    <div class="bs-card-title">☁️ How to Setup Google Drive Auto-Backup</div>
+    <div class="bs-steps">
+      <div class="bs-step">
+        <div class="bs-step-num">1</div>
+        <div class="bs-step-text">Download & install <strong>Google Drive for Desktop</strong> from <a href="https://drive.google.com/drive/downloads" target="_blank">drive.google.com</a></div>
+      </div>
+      <div class="bs-step">
+        <div class="bs-step-num">2</div>
+        <div class="bs-step-text">Sign in with Google account. Google Drive will appear as a folder like <code>G:\My Drive\</code> or <code>C:\Users\tarun\Google Drive\</code></div>
+      </div>
+      <div class="bs-step">
+        <div class="bs-step-num">3</div>
+        <div class="bs-step-text">Create a folder called <code>SalonBackup</code> inside Google Drive</div>
+      </div>
+      <div class="bs-step">
+        <div class="bs-step-num">4</div>
+        <div class="bs-step-text">Paste that full path above and click <strong>Save & Backup Now</strong></div>
+      </div>
+      <div class="bs-step">
+        <div class="bs-step-num">5</div>
+        <div class="bs-step-text">From now on, every time you click <strong>Backup Data</strong> in the sidebar, it auto-saves to Google Drive ☁️</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<style>
+  .bs-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; max-width:900px; }
+  .bs-full { grid-column:1/-1; }
+  .bs-card { background:#fff; border-radius:16px; padding:24px; box-shadow:0 2px 12px rgba(61,26,58,0.08); }
+  .bs-card-title { font-size:14px; font-weight:600; color:#3d1a3a; margin-bottom:14px; }
+  .bs-desc { font-size:13px; color:#666; margin-bottom:16px; line-height:1.6; }
+  .bs-form { display:flex; flex-direction:column; gap:10px; }
+  .bs-label { font-size:12px; font-weight:500; color:#3d1a3a; }
+  .bs-form input { padding:10px 14px; border:1.5px solid #e8dce4; border-radius:10px; font-size:13px; outline:none; background:#fafafa; }
+  .bs-form input:focus { border-color:#7b3f6e; background:#fff; }
+  .bs-hint { font-size:12px; color:#8a7a85; background:#fdf6f0; padding:10px 12px; border-radius:8px; line-height:1.5; }
+  .bs-btns { display:flex; gap:10px; flex-wrap:wrap; margin-top:4px; }
+  .bs-btn { padding:10px 20px; border-radius:10px; font-size:13px; font-weight:600; cursor:pointer; border:none; text-decoration:none; text-align:center; transition:all 0.2s; }
+  .bs-btn.primary { background:linear-gradient(135deg,#3d1a3a,#7b3f6e); color:#fff; }
+  .bs-btn.primary:hover { transform:translateY(-1px); box-shadow:0 4px 12px rgba(61,26,58,0.25); }
+  .bs-btn.secondary { background:#f5f0ff; color:#3d1a3a; border:1.5px solid #e8dce4; }
+  .bs-btn.secondary:hover { border-color:#7b3f6e; }
+
+  .bs-backup-list { display:flex; flex-direction:column; gap:8px; }
+  .bs-backup-item { display:flex; align-items:center; gap:10px; padding:10px 12px; background:#fafafa; border-radius:10px; border:1px solid #f0e8f8; }
+  .bs-backup-icon { font-size:18px; }
+  .bs-backup-name { font-size:12px; color:#3d1a3a; font-family:monospace; }
+  .bs-empty { text-align:center; padding:24px; color:#b09aaa; font-size:13px; }
+
+  .bs-steps { display:flex; flex-direction:column; gap:14px; }
+  .bs-step { display:flex; align-items:flex-start; gap:14px; }
+  .bs-step-num { width:28px; height:28px; border-radius:50%; background:linear-gradient(135deg,#3d1a3a,#7b3f6e); color:#fff; font-size:13px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .bs-step-text { font-size:13px; color:#444; line-height:1.6; padding-top:4px; }
+  .bs-step-text code { background:#f0e8f8; padding:2px 6px; border-radius:4px; font-size:12px; color:#7b3f6e; }
+  .bs-step-text a { color:#7b3f6e; }
+
+  @media(max-width:700px) { .bs-grid { grid-template-columns:1fr; } }
+</style>
+{% endblock %}
