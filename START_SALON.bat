@@ -4,70 +4,65 @@ color 0A
 
 echo.
 echo ==========================================
-echo   NEWSHADES FAMILY SALON - BILLING SYSTEM
+echo   NEWSHADES FAMILY SALON
 echo ==========================================
 echo.
 
 cd /d "%~dp0"
 
-:: Check Python
+:: Find python
+set PYTHON=
 python --version >nul 2>&1
-if %errorlevel% neq 0 (
+if %errorlevel% == 0 set PYTHON=python
+
+if "%PYTHON%"=="" (
+    py --version >nul 2>&1
+    if %errorlevel% == 0 set PYTHON=py
+)
+
+if "%PYTHON%"=="" (
     color 0C
-    echo   ERROR: Python is not installed!
+    echo   ERROR: Python not found!
     echo   Please run INSTALL.bat first.
-    echo.
     pause
-    exit
+    exit /b
 )
 
-:: Install dependencies (show errors if any)
-echo   Checking dependencies...
-python -m pip install flask werkzeug reportlab -q
-if %errorlevel% neq 0 (
-    color 0C
-    echo   ERROR: Failed to install dependencies.
-    echo   Check your internet connection and try again.
-    pause
-    exit
-)
+:: Install/check dependencies silently
+%PYTHON% -m pip install flask werkzeug reportlab -q 2>nul
 
-:: Kill anything on port 8080
-echo   Clearing port 8080...
+:: Kill old process on port 8080
 for /f "tokens=5" %%a in ('netstat -aon 2^>nul ^| find ":8080" ^| find "LISTENING"') do (
     taskkill /f /pid %%a >nul 2>&1
 )
 timeout /t 1 /nobreak >nul
 
-:: Start Flask visibly so errors show
-echo   Starting server...
-start "Newshades Server" /min python app.py
+:: Start Flask
+echo   Starting app...
+start "Newshades Server" /min cmd /c "%PYTHON% app.py"
 
-:: Wait longer for server to be ready
-echo   Waiting for server to start...
-timeout /t 5 /nobreak >nul
+:: Wait for server
+echo   Please wait...
+timeout /t 6 /nobreak >nul
 
-:: Check if server actually started
-netstat -aon | find ":8080" | find "LISTENING" >nul 2>&1
+:: Verify server started
+netstat -aon 2>nul | find ":8080" | find "LISTENING" >nul
 if %errorlevel% neq 0 (
     color 0C
     echo.
-    echo   ERROR: Server failed to start!
-    echo   Close this window, then run START_SALON.bat again.
-    echo   If problem persists, run INSTALL.bat again.
-    echo.
+    echo   ERROR: App failed to start.
+    echo   Run INSTALL.bat again and retry.
     pause
-    exit
+    exit /b
 )
 
 :: Open browser
-echo   Opening browser...
 start http://localhost:8080
 
 echo.
 echo ==========================================
-echo   App is running at http://localhost:8080
-echo   DO NOT close this window!
+echo   App is running!
+echo   DO NOT close this window.
 echo ==========================================
 echo.
 pause
