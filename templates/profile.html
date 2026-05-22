@@ -46,6 +46,30 @@
       <button type="submit" class="btn btn-primary" style="width:100%;padding:13px;letter-spacing:2px;">Save Changes</button>
     </form>
   </div>
+
+  <!-- Employee Password Card -->
+  <div class="profile-card" style="margin-top:20px;">
+    <div class="profile-avatar" style="background:linear-gradient(135deg,#a07820,#c9a96e);">
+      <div style="font-size:40px;margin-bottom:8px;">💼</div>
+      <div class="profile-name">Employee Access</div>
+      <div class="profile-role">Set password for employee login</div>
+    </div>
+    <form method="POST" action="/profile" class="profile-form">
+      <input type="hidden" name="username" value="{{ admin.username }}">
+      <input type="hidden" name="current_password" value="__skip__">
+      <div class="form-group">
+        <label>Employee Password</label>
+        <div class="input-wrap eye-wrap">
+          <input type="password" name="employee_password" id="emp_pass"
+            placeholder="Set employee login password"
+            value="{{ admin.get('employee_password', '') }}"/>
+          <span class="eye-btn" onclick="toggleEye('emp_pass', this)">👁</span>
+        </div>
+        <small style="color:#b09aaa;font-size:11px;margin-top:4px;display:block;">Leave blank to disable employee password</small>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;padding:13px;letter-spacing:2px;">Save Employee Password</button>
+    </form>
+  </div>
 </div>
 
 <style>

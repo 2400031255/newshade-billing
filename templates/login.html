@@ -417,10 +417,19 @@
       </form>
     </div>
 
-    <!-- Employee Panel (no login needed) -->
+    <!-- Employee Panel -->
     <div class="login-panel" id="panel-employee">
-      <a href="/employee" class="btn-employee">Enter as Employee</a>
-      <p class="info-note">No password required.<br>Employees can create bills & manage customers.</p>
+      <form method="POST" action="/employee">
+        <div class="form-group">
+          <label>Employee Password</label>
+          <div class="input-wrap" style="position:relative;">
+            <span class="input-icon">🔐</span>
+            <input type="password" name="password" placeholder="Enter employee password" id="emp-pass" required style="padding-right:44px;"/>
+            <span onclick="togglePass('emp-pass',this)" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:16px;opacity:0.4;transition:opacity 0.2s;" onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=0.4">👁</span>
+          </div>
+        </div>
+        <button type="submit" class="btn-employee">Login as Employee</button>
+      </form>
     </div>
 
 

@@ -143,16 +143,20 @@ ADMIN_FILE = os.path.join(DATA_DIR, "admin.json")
 def get_admin():
     if _use_mongo():
         doc = _get_db().admin.find_one({"_id": "admin"})
-        return {"username": doc["username"], "password": doc["password"]} if doc else None
+        return {"username": doc["username"], "password": doc["password"], "employee_password": doc.get("employee_password", "")} if doc else None
     if os.path.exists(ADMIN_FILE):
         with open(ADMIN_FILE) as f:
             return json.load(f)
     return None
 
-def save_admin(username, hashed_password):
+def save_admin(username, hashed_password, employee_password=None):
     if _use_mongo():
-        _get_db().admin.replace_one({"_id": "admin"}, {"_id": "admin", "username": username, "password": hashed_password}, upsert=True)
+        doc = {"_id": "admin", "username": username, "password": hashed_password}
+        if employee_password is not None: doc["employee_password"] = employee_password
+        _get_db().admin.replace_one({"_id": "admin"}, doc, upsert=True)
     else:
         _ensure_data_dir()
+        existing = get_admin() or {}
+        data = {"username": username, "password": hashed_password, "employee_password": employee_password if employee_password is not None else existing.get("employee_password", "")}
         with open(ADMIN_FILE, "w") as f:
-            json.dump({"username": username, "password": hashed_password}, f)
+            json.dump(data, f)

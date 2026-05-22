@@ -26,8 +26,8 @@ def _get_admin():
     save_admin("komali", hashed)
     return {"username": "komali", "password": hashed}
 
-def _save_admin(username, hashed_password):
-    save_admin(username, hashed_password)
+def _save_admin(username, hashed_password, employee_password=None):
+    save_admin(username, hashed_password, employee_password)
 
 def gen_id(prefix=""):
     return prefix + str(uuid.uuid4())[:8].upper()
@@ -79,10 +79,19 @@ def guest():
     session["role"] = "guest"
     return redirect(url_for("dashboard"))
 
-@app.route("/employee")
+@app.route("/employee", methods=["GET", "POST"])
 def employee():
-    session["role"] = "employee"
-    return redirect(url_for("dashboard"))
+    admin = _get_admin()
+    emp_pass = admin.get("employee_password", "") if admin else ""
+    if not emp_pass:
+        session["role"] = "employee"
+        return redirect(url_for("dashboard"))
+    if request.method == "POST":
+        if request.form.get("password", "") == emp_pass:
+            session["role"] = "employee"
+            return redirect(url_for("dashboard"))
+        flash("Incorrect employee password.", "error")
+    return redirect(url_for("login") + "?emp=1")
 
 @app.route("/logout")
 def logout():
@@ -288,6 +297,12 @@ def profile():
         current_password = request.form.get("current_password", "").strip()
         new_password = request.form.get("new_password", "").strip()
         confirm_password = request.form.get("confirm_password", "").strip()
+        emp_password = request.form.get("employee_password", None)
+        # Employee password only save (skip admin password check)
+        if current_password == "__skip__":
+            _save_admin(admin["username"], admin["password"], emp_password.strip() if emp_password is not None else admin.get("employee_password", ""))
+            flash("Employee password updated.", "success")
+            return redirect(url_for("profile"))
         if not check_password_hash(admin["password"], current_password):
             flash("Current password is incorrect.", "error")
             return render_template("profile.html", admin=admin)
@@ -297,7 +312,8 @@ def profile():
         if new_password and new_password != confirm_password:
             flash("New passwords do not match.", "error")
             return render_template("profile.html", admin=admin)
-        _save_admin(new_username, generate_password_hash(new_password) if new_password else admin["password"])
+        emp_password = request.form.get("employee_password", "").strip()
+        _save_admin(new_username, generate_password_hash(new_password) if new_password else admin["password"], emp_password if emp_password else admin.get("employee_password", ""))
         flash("Profile updated successfully.", "success")
         return redirect(url_for("profile"))
     return render_template("profile.html", admin=admin)
