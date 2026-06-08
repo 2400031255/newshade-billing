@@ -16,15 +16,24 @@ CUSTOMERS_FILE = os.path.join(DATA_DIR, "customers.json")
 BILLS_FILE     = os.path.join(DATA_DIR, "bills.json")
 SERVICES_FILE  = os.path.join(DATA_DIR, "services.json")
 
-# ── MongoDB setup (disabled due to SSL issues on Python 3.14) ───────────────
-MONGO_URI = None  # Disabled - using JSON file storage
+# ── MongoDB setup ───────────────────────────────────────────────────────────
+MONGO_URI = os.environ.get("MONGO_URI")
 _db = None
 
 def _get_db():
-    return None
+    global _db
+    if _db is None and MONGO_URI:
+        try:
+            from pymongo import MongoClient
+            client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=3000)
+            client.server_info()
+            _db = client["newshades"]
+        except Exception:
+            _db = None
+    return _db
 
 def _use_mongo():
-    return False
+    return _get_db() is not None
 
 # ── JSON helpers (local fallback) ────────────────────────────────────────────
 

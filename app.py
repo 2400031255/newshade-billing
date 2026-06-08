@@ -22,9 +22,10 @@ ADMIN_FILE = os.path.join(os.environ.get("SALON_DATA_DIR") or os.path.join(os.pa
 def _get_admin():
     admin = get_admin()
     if admin: return admin
-    hashed = generate_password_hash("komali123")
-    save_admin("komali", hashed)
-    return {"username": "komali", "password": hashed}
+    default_pass = os.environ.get("DEFAULT_ADMIN_PASSWORD", "admin123")
+    hashed = generate_password_hash(default_pass)
+    save_admin("admin", hashed)
+    return {"username": "admin", "password": hashed}
 
 def _save_admin(username, hashed_password, employee_password=None):
     save_admin(username, hashed_password, employee_password)
@@ -449,8 +450,10 @@ def _do_backup(dest_dir=None):
         # Keep only last 10 backups
         backups = sorted([f for f in os.listdir(dest_dir) if f.startswith("newshades_backup")])
         for old in backups[:-10]:
-            try: os.remove(os.path.join(dest_dir, old))
-            except: pass
+            try:
+                os.remove(os.path.join(dest_dir, old))
+            except OSError:
+                pass
         return zip_path, fname
     return None, fname
 
@@ -473,7 +476,8 @@ def backup():
     bdir = _get_backup_dir()
     if bdir and os.path.isdir(bdir):
         try: _do_backup(bdir)
-        except: pass
+        except Exception:
+            pass
     # Always download zip
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
