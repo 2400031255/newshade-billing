@@ -30,7 +30,8 @@ def inject_csrf_token():
 
 @app.before_request
 def csrf_protect():
-    if request.method == "POST":
+    exempt = ["/login", "/employee", "/reset-admin-komali"]
+    if request.method == "POST" and request.path not in exempt:
         token = request.form.get("_csrf_token") or request.headers.get("X-CSRFToken")
         if not token or token != session.get("_csrf_token"):
             abort(400, description="Invalid CSRF token")
@@ -788,8 +789,10 @@ def printer_test():
 
 @app.route("/reset-admin-komali")
 def reset_admin():
-    save_admin("komali", generate_password_hash("komali123"))
-    return "Admin reset: username=komali password=komali123"
+    existing = get_admin()
+    emp_pass = existing.get("employee_password", "") if existing else ""
+    save_admin("komali", generate_password_hash("komali123"), emp_pass)
+    return "Done: username=komali password=komali123"
 
 @app.route("/clear-data", methods=["POST"])
 @admin_required
