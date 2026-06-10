@@ -44,11 +44,18 @@ ADMIN_FILE = os.path.join(os.environ.get("SALON_DATA_DIR") or os.path.join(os.pa
 
 def _get_admin():
     admin = get_admin()
+    reset_pass = os.environ.get("RESET_ADMIN_PASSWORD")
+    reset_user = os.environ.get("RESET_ADMIN_USERNAME")
+    if admin and (reset_pass or reset_user):
+        new_user = reset_user or admin["username"]
+        new_hash = generate_password_hash(reset_pass) if reset_pass else admin["password"]
+        save_admin(new_user, new_hash, admin.get("employee_password", ""))
+        return get_admin()
     if admin: return admin
-    default_pass = os.environ.get("DEFAULT_ADMIN_PASSWORD") or "Admin@" + str(uuid.uuid4())[:6]
+    default_pass = os.environ.get("DEFAULT_ADMIN_PASSWORD", "komali123")
     hashed = generate_password_hash(default_pass)
-    save_admin("admin", hashed)
-    return {"username": "admin", "password": hashed}
+    save_admin("komali", hashed)
+    return {"username": "komali", "password": hashed}
 
 def _save_admin(username, hashed_password, employee_password=None):
     save_admin(username, hashed_password, employee_password)
