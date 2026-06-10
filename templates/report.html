@@ -6,6 +6,7 @@
 </div>
 
 <form method="POST" class="date-form">
+  <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
   <input type="date" name="date" value="{{ date }}" required>
   <button type="submit" class="btn btn-primary">View</button>
   {% if bills %}
@@ -38,7 +39,8 @@
     {% for bid, b in bills.items() %}
     <tr>
       <td><a href="/bill/{{ bid }}" style="color:#7b3f6e;text-decoration:none;font-weight:600;">{{ bid }}</a></td>
-      <td>{{ b.customer_id }}</td>
+      {% set c = get_customer(b.customer_id) %}
+      <td>{{ c.name if c else 'Walk-in' }}</td>
       <td>₹{{ "%.0f"|format(b.total) }}</td>
       <td><span class="pay-badge {{ b.payment_method|lower }}">{{ b.payment_method }}</span></td>
       <td>

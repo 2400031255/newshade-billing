@@ -10,6 +10,7 @@
     <p class="bs-desc">Set a folder where backups are saved automatically every time you click Backup Data. Use your <strong>Google Drive</strong> or <strong>USB</strong> folder path for automatic cloud backup.</p>
 
     <form method="POST" class="bs-form">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
       <label class="bs-label">Backup Folder Path</label>
       <input type="text" name="backup_dir" value="{{ backup_dir }}"
         placeholder="e.g. C:\Users\tarun\Google Drive\SalonBackup">

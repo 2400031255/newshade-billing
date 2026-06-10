@@ -6,6 +6,7 @@
 <div class="sv-card" style="margin-bottom:20px;">
   <div class="sv-card-title">➕ Add New Service</div>
   <form method="POST" action="/services/add" class="add-form">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
     <input type="text" name="name" placeholder="Service name" required>
     <input type="text" name="category" placeholder="Category (e.g. Hair, Facial)" required>
     <div class="price-wrap">
@@ -57,9 +58,14 @@
           <td class="sv-price">₹{{ "%.0f"|format(svc.price) }}</td>
           <td class="sv-actions">
             <button type="button" class="sv-btn edit"
-              onclick="openEdit('{{ sid }}', '{{ svc.name|replace("'","\\'")|replace('"','\\"') }}', '{{ svc.category|replace("'","\\'")|replace('"','\\"') }}', {{ svc.price }})">✏️ Edit</button>
+              data-service-id="{{ sid }}"
+              data-service-name="{{ svc.name }}"
+              data-service-category="{{ svc.category }}"
+              data-service-price="{{ svc.price }}"
+              onclick="openEdit(this)">✏️ Edit</button>
             <form method="POST" action="/services/{{ sid }}/delete"
               onsubmit="return confirm('Delete {{ svc.name }}?')" style="display:inline">
+              <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
               <button type="submit" class="sv-btn del">🗑</button>
             </form>
           </td>
@@ -76,6 +82,7 @@
   <div class="modal-box">
     <div class="modal-title">✏️ Edit Service</div>
     <form method="POST" id="editForm">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
       <div class="modal-field">
         <label>Service Name</label>
         <input type="text" name="name" id="editName" required>
@@ -192,11 +199,12 @@
     filterSvc();
   }
 
-  function openEdit(sid, name, category, price) {
+  function openEdit(button) {
+    const sid = button.dataset.serviceId;
     document.getElementById('editForm').action = '/services/' + sid + '/edit';
-    document.getElementById('editName').value = name;
-    document.getElementById('editCategory').value = category;
-    document.getElementById('editPrice').value = price;
+    document.getElementById('editName').value = button.dataset.serviceName || '';
+    document.getElementById('editCategory').value = button.dataset.serviceCategory || '';
+    document.getElementById('editPrice').value = button.dataset.servicePrice || '';
     document.getElementById('editModal').style.display = 'flex';
     document.getElementById('editName').focus();
   }

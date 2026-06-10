@@ -3,6 +3,7 @@
 <h1 class="page-title">🧾 New Bill</h1>
 
 <form method="POST" class="nb-form" id="billForm">
+  <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
 
   <!-- Customer -->
   <div class="nb-card">

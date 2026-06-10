@@ -9,6 +9,7 @@
 </div>
 
 <form method="POST" class="date-form" style="margin-bottom:24px;">
+  <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
   <input type="month" name="month" value="{{ month }}" required>
   <button type="submit" class="btn btn-primary">View</button>
 </form>

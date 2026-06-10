@@ -1,7 +1,7 @@
 import uuid, json, os, math, shutil
 from datetime import datetime, timedelta
 from functools import wraps
-from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, make_response
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, make_response, abort
 from werkzeug.security import generate_password_hash, check_password_hash
 from models import Customer, Bill, BillItem
 from services import SERVICES, get_services, DEFAULTS
@@ -11,7 +11,29 @@ from storage import (save_customer, get_customer, get_all_customers,
                      get_admin, save_admin)
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "newshades-secret-2024")
+app.secret_key = os.environ.get("SECRET_KEY") or os.urandom(24)
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["PERMANENT_SESSION_LIFETIME"] = 86400  # 1 day
+
+
+def _get_csrf_token():
+    token = session.get("_csrf_token")
+    if not token:
+        token = uuid.uuid4().hex
+        session["_csrf_token"] = token
+    return token
+
+@app.context_processor
+def inject_csrf_token():
+    return {"csrf_token": _get_csrf_token, "get_customer": get_customer}
+
+@app.before_request
+def csrf_protect():
+    if request.method == "POST":
+        token = request.form.get("_csrf_token") or request.headers.get("X-CSRFToken")
+        if not token or token != session.get("_csrf_token"):
+            abort(400, description="Invalid CSRF token")
 
 @app.errorhandler(500)
 def internal_error(e):
@@ -22,7 +44,7 @@ ADMIN_FILE = os.path.join(os.environ.get("SALON_DATA_DIR") or os.path.join(os.pa
 def _get_admin():
     admin = get_admin()
     if admin: return admin
-    default_pass = os.environ.get("DEFAULT_ADMIN_PASSWORD", "admin123")
+    default_pass = os.environ.get("DEFAULT_ADMIN_PASSWORD") or "Admin@" + str(uuid.uuid4())[:6]
     hashed = generate_password_hash(default_pass)
     save_admin("admin", hashed)
     return {"username": "admin", "password": hashed}
@@ -54,7 +76,7 @@ def employee_or_admin_required(f):
 def login_or_guest_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        if not session.get("role"):
+        if session.get("role") not in ("admin", "employee"):
             return redirect(url_for("login"))
         return f(*args, **kwargs)
     return decorated
@@ -75,11 +97,6 @@ def login():
         flash("Invalid username or password.", "error")
     return render_template("login.html")
 
-@app.route("/guest")
-def guest():
-    session["role"] = "guest"
-    return redirect(url_for("dashboard"))
-
 @app.route("/employee", methods=["GET", "POST"])
 def employee():
     admin = _get_admin()
@@ -88,7 +105,8 @@ def employee():
         session["role"] = "employee"
         return redirect(url_for("dashboard"))
     if request.method == "POST":
-        if request.form.get("password", "") == emp_pass:
+        entered = request.form.get("password", "")
+        if check_password_hash(emp_pass, entered):
             session["role"] = "employee"
             return redirect(url_for("dashboard"))
         flash("Incorrect employee password.", "error")
@@ -105,7 +123,7 @@ def logout():
 @login_or_guest_required
 def dashboard():
     customers = get_all_customers()
-    today = datetime.now().strftime("%Y-%m-%d")
+    today = datetime.now().astimezone().strftime("%Y-%m-%d")
     bills = get_bills_by_date(today)
     revenue = sum(b["total"] for b in bills.values())
 
@@ -192,9 +210,9 @@ def new_bill():
 
         try:
             discount = float(request.form.get("discount", 0) or 0)
-            if math.isnan(discount) or math.isinf(discount) or not (0 <= discount <= 100):
+            if not math.isfinite(discount) or not (0 <= discount <= 100):
                 discount = 0.0
-        except ValueError:
+        except (ValueError, TypeError):
             discount = 0.0
         payment = request.form.get("payment", "Cash")
 
@@ -250,13 +268,14 @@ def services_page():
 @app.route("/services/add", methods=["POST"])
 @admin_required
 def add_service():
-    data = load_services() or {sid: {"name": s["name"], "price": s["price"]} for sid, s in DEFAULTS.items()}
-    new_id = str(max(int(k) for k in data.keys()) + 1)
+    data = load_services() or {sid: {"name": s["name"], "price": s["price"], "category": s.get("category", "General")} for sid, s in DEFAULTS.items()}
+    next_id = max([int(k) for k in data.keys() if k.isdigit()] or [0]) + 1
+    new_id = str(next_id)
     name = request.form.get("name", "").strip()
     try:
         price = float(request.form.get("price", 0) or 0)
-        if math.isnan(price) or math.isinf(price) or price < 0: price = 0.0
-    except ValueError:
+        if not math.isfinite(price) or price < 0: price = 0.0
+    except (ValueError, TypeError):
         price = 0.0
     category = request.form.get("category", "General").strip() or "General"
     if name:
@@ -268,13 +287,13 @@ def add_service():
 @app.route("/services/<sid>/edit", methods=["POST"])
 @admin_required
 def edit_service(sid):
-    data = load_services() or {s: {"name": v["name"], "price": v["price"]} for s, v in DEFAULTS.items()}
+    data = load_services() or {s: {"name": v["name"], "price": v["price"], "category": v.get("category", "General")} for s, v in DEFAULTS.items()}
     if sid in data:
         data[sid]["name"] = request.form.get("name", data[sid]["name"]).strip()
         try:
             data[sid]["price"] = float(request.form.get("price", data[sid]["price"]) or 0)
-            if math.isnan(data[sid]["price"]) or math.isinf(data[sid]["price"]) or data[sid]["price"] < 0: data[sid]["price"] = 0.0
-        except ValueError:
+            if not math.isfinite(data[sid]["price"]) or data[sid]["price"] < 0: data[sid]["price"] = 0.0
+        except (ValueError, TypeError):
             data[sid]["price"] = 0.0
         data[sid]["category"] = request.form.get("category", data[sid].get("category", "General")).strip() or "General"
         save_services(data)
@@ -284,7 +303,7 @@ def edit_service(sid):
 @app.route("/services/<sid>/delete", methods=["POST"])
 @admin_required
 def remove_service(sid):
-    data = load_services() or {s: {"name": v["name"], "price": v["price"]} for s, v in DEFAULTS.items()}
+    data = load_services() or {s: {"name": v["name"], "price": v["price"], "category": v.get("category", "General")} for s, v in DEFAULTS.items()}
     name = data.get(sid, {}).get("name", "")
     delete_service(sid)
     flash(f"Service '{name}' deleted.", "success")
@@ -301,7 +320,9 @@ def profile():
         emp_password = request.form.get("employee_password", None)
         # Employee password only save (skip admin password check)
         if current_password == "__skip__":
-            _save_admin(admin["username"], admin["password"], emp_password.strip() if emp_password is not None else admin.get("employee_password", ""))
+            new_emp = emp_password.strip() if emp_password is not None else ""
+            hashed_emp = generate_password_hash(new_emp) if new_emp else admin.get("employee_password", "")
+            _save_admin(admin["username"], admin["password"], hashed_emp)
             flash("Employee password updated.", "success")
             return redirect(url_for("profile"))
         if not check_password_hash(admin["password"], current_password):
@@ -314,7 +335,8 @@ def profile():
             flash("New passwords do not match.", "error")
             return render_template("profile.html", admin=admin)
         emp_password = request.form.get("employee_password", "").strip()
-        _save_admin(new_username, generate_password_hash(new_password) if new_password else admin["password"], emp_password if emp_password else admin.get("employee_password", ""))
+        new_emp_hash = generate_password_hash(emp_password) if emp_password else admin.get("employee_password", "")
+        _save_admin(new_username, generate_password_hash(new_password) if new_password else admin["password"], new_emp_hash)
         flash("Profile updated successfully.", "success")
         return redirect(url_for("profile"))
     return render_template("profile.html", admin=admin)
@@ -361,7 +383,8 @@ def search_customers():
 @admin_required
 def monthly_report():
     from storage import get_all_bills
-    month_str = request.form.get("month", datetime.now().strftime("%Y-%m")) if request.method == "POST" else datetime.now().strftime("%Y-%m")
+    now = datetime.now().astimezone()
+    month_str = request.form.get("month", now.strftime("%Y-%m")) if request.method == "POST" else now.strftime("%Y-%m")
     all_bills = get_all_bills()
     bills = {bid: b for bid, b in all_bills.items() if b["date"].startswith(month_str)}
     revenue = sum(b["total"] for b in bills.values())
@@ -393,7 +416,7 @@ def export_pdf():
     from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
     from reportlab.lib.styles import getSampleStyleSheet
     import io
-    month_str = request.args.get("month", datetime.now().strftime("%Y-%m"))
+    month_str = request.args.get("month", datetime.now().astimezone().strftime("%Y-%m"))
     all_bills = get_all_bills()
     bills = {bid: b for bid, b in all_bills.items() if b["date"].startswith(month_str)}
     revenue = sum(b["total"] for b in bills.values())
@@ -438,7 +461,7 @@ def _do_backup(dest_dir=None):
     """Create a zip backup. Returns (zip_path, filename) or raises."""
     import zipfile
     from storage import DATA_DIR
-    fname = f"newshades_backup_{datetime.now().strftime('%Y%m%d_%H%M')}.zip"
+    fname = f"newshades_backup_{datetime.now().astimezone().strftime('%Y%m%d_%H%M')}.zip"
     if dest_dir:
         os.makedirs(dest_dir, exist_ok=True)
         zip_path = os.path.join(dest_dir, fname)
@@ -475,8 +498,9 @@ def backup():
     # Also auto-save to configured folder
     bdir = _get_backup_dir()
     if bdir and os.path.isdir(bdir):
-        try: _do_backup(bdir)
-        except Exception:
+        try:
+            _do_backup(bdir)
+        except OSError:
             pass
     # Always download zip
     buf = io.BytesIO()
@@ -488,7 +512,7 @@ def backup():
     buf.seek(0)
     response = make_response(buf.read())
     response.headers["Content-Type"] = "application/zip"
-    response.headers["Content-Disposition"] = f"attachment; filename=newshades_backup_{datetime.now().strftime('%Y%m%d_%H%M')}.zip"
+    response.headers["Content-Disposition"] = f"attachment; filename=newshades_backup_{datetime.now().astimezone().strftime('%Y%m%d_%H%M')}.zip"
     return response
 
 @app.route("/backup/settings", methods=["GET", "POST"])
@@ -501,14 +525,16 @@ def backup_settings():
     if backup_dir and os.path.isdir(backup_dir):
         last_backups = sorted([f for f in os.listdir(backup_dir) if f.startswith("newshades_backup")], reverse=True)[:5]
     if request.method == "POST":
-        new_dir = request.form.get("backup_dir", "").strip()
-        with open(cfg_file, "w") as f:
-            json.dump({"backup_dir": new_dir}, f)
-        if new_dir and not os.path.isdir(new_dir):
+        new_dir = os.path.normpath(request.form.get("backup_dir", "").strip())
+        if new_dir and new_dir != "." and not os.path.isdir(new_dir):
             flash(f"Folder not found: {new_dir}", "error")
+        elif new_dir and "." in new_dir.split(os.sep) and new_dir != ".":
+            flash("Invalid backup folder path.", "error")
+            new_dir = ""
         else:
+            with open(cfg_file, "w") as f:
+                json.dump({"backup_dir": new_dir}, f)
             flash("Backup folder saved!", "success")
-            # Do an immediate backup
             if new_dir:
                 try:
                     _do_backup(new_dir)
@@ -517,6 +543,121 @@ def backup_settings():
                     flash(f"Backup failed: {e}", "error")
         return redirect(url_for("backup_settings"))
     return render_template("backup_settings.html", backup_dir=backup_dir, last_backups=last_backups)
+
+# ── Printer helpers ───────────────────────────────────────────────────────────
+
+import platform
+
+def _get_system_printers():
+    """Return (printers_list, default) cross-platform."""
+    system = platform.system()
+    printers, default = [], ""
+    if system == "Windows":
+        try:
+            import win32print
+            printers = [p[2] for p in win32print.EnumPrinters(
+                win32print.PRINTER_ENUM_LOCAL | win32print.PRINTER_ENUM_CONNECTIONS)]
+            default = win32print.GetDefaultPrinter()
+        except ImportError:
+            pass
+    else:  # macOS / Linux
+        try:
+            import subprocess
+            lpstat_path = shutil.which("lpstat") or "/usr/bin/lpstat"
+            out = subprocess.check_output([lpstat_path, "-a"], text=True, timeout=4)
+            printers = [line.split()[0] for line in out.strip().splitlines() if line]
+            try:
+                d = subprocess.check_output([lpstat_path, "-d"], text=True, timeout=4)
+                default = d.split(":")[-1].strip()
+            except (subprocess.SubprocessError, OSError):
+                default = printers[0] if printers else ""
+        except (subprocess.SubprocessError, OSError, FileNotFoundError):
+            pass
+    return printers, default
+
+def _get_saved_printer():
+    from storage import DATA_DIR
+    cfg = os.path.join(DATA_DIR, "printer_config.json")
+    if os.path.exists(cfg):
+        with open(cfg) as f:
+            return json.load(f).get("printer", "")
+    return ""
+
+def _build_escpos_lines(bid, b, customer):
+    """Build ESC/POS text content, returns list of (cmd, args) tuples."""
+    W = 42
+    subtotal = sum(i["service_price"] * i["quantity"] for i in b["items"])
+    disc_amt = subtotal * b["discount"] / 100
+
+    def row(label, value):
+        gap = W - len(label) - len(value)
+        return label + " " * max(1, gap) + value
+
+    content = []
+    content.append(("center_bold_big", "NEWSHADES FAMILY SALON"))
+    content.append(("center", "Look Beautiful, Feel Beautiful"))
+    content.append(("divider", "-"))
+    content.append(("center_bold", "PAYMENT RECEIPT"))
+    content.append(("divider", "-"))
+    content.append(("left", row("Bill No :", bid)))
+    content.append(("left", row("Date    :", b["date"][:10])))
+    content.append(("left", row("Time    :", b["date"][11:16])))
+    content.append(("left", row("Customer:", (customer.name if customer else "Walk-in")[:18])))
+    content.append(("left", row("Mobile  :", customer.phone if customer else "-")))
+    content.append(("divider", "-"))
+    content.append(("bold", row("SERVICE", "AMOUNT")))
+    content.append(("divider", "-"))
+    for item in b["items"]:
+        amt = item["service_price"] * item["quantity"]
+        qty = f" x{item['quantity']}" if item["quantity"] > 1 else ""
+        name = (item["service_name"] + qty)[:22]
+        content.append(("left", row(name, f"Rs.{int(amt)}"[:10])))
+    content.append(("divider", "-"))
+    if b["discount"] > 0:
+        content.append(("left", row("Subtotal", f"Rs.{int(subtotal)}"[:10])))
+        content.append(("left", row(f"Discount({b['discount']}%)", f"-Rs.{int(disc_amt)}"[:10])))
+        content.append(("divider", "-"))
+    content.append(("bold_big", row("TOTAL", f"Rs.{int(b['total'])}")))
+    content.append(("divider", "="))
+    content.append(("left", row("Payment :", b["payment_method"])))
+    content.append(("left", row("Status  :", "Paid")))
+    content.append(("divider", "-"))
+    content.append(("center", "Thank You! Visit Again"))
+    content.append(("center", "Newshades Family Salon"))
+    content.append(("center", "Look Beautiful, Feel Beautiful"))
+    content.append(("feed", ""))
+    return content
+
+def _print_escpos(p, content):
+    W = 42
+    for cmd, text in content:
+        if cmd == "center_bold_big":
+            p.set(align="center", bold=True, double_height=True, double_width=False)
+            p.text(text + "\n")
+            p.set(align="left", bold=False, double_height=False)
+        elif cmd == "center_bold":
+            p.set(align="center", bold=True)
+            p.text(text + "\n")
+            p.set(align="left", bold=False)
+        elif cmd == "center":
+            p.set(align="center")
+            p.text(text + "\n")
+            p.set(align="left")
+        elif cmd == "bold":
+            p.set(bold=True)
+            p.text(text + "\n")
+            p.set(bold=False)
+        elif cmd == "bold_big":
+            p.set(bold=True, double_height=True)
+            p.text(text + "\n")
+            p.set(bold=False, double_height=False)
+        elif cmd == "divider":
+            p.text(text * W + "\n")
+        elif cmd == "feed":
+            p.text("\n\n\n")
+        else:
+            p.text(text + "\n")
+    p.cut()
 
 # ── ESC/POS Direct Print ─────────────────────────────────────────────────────
 
@@ -529,93 +670,50 @@ def thermal_print(bid):
         return jsonify({"error": "Bill not found"}), 404
     b = bills[bid]
     customer = get_customer(b["customer_id"])
+    printer_name = request.form.get("printer", "").strip() or _get_saved_printer()
+
+    if not printer_name:
+        return jsonify({"error": "no_printer"}), 200
 
     try:
-        from escpos.printer import Usb, Win32Raw
-        import escpos.printer as ep
+        content = _build_escpos_lines(bid, b, customer)
+        system = platform.system()
 
-        # Try to find printer - Win32Raw uses printer name on Windows
-        from storage import DATA_DIR
-        cfg_file = os.path.join(DATA_DIR, "printer_config.json")
-        saved_printer = ""
-        if os.path.exists(cfg_file):
-            with open(cfg_file) as f:
-                saved_printer = json.load(f).get("printer", "")
-        printer_name = request.form.get("printer", "") or saved_printer
-        try:
-            p = Win32Raw(printer_name) if printer_name else Win32Raw()
-        except Exception:
-            return jsonify({"error": "Printer not found. Go to Settings → Printer Settings to configure."}), 500
+        if system == "Windows":
+            from escpos.printer import Win32Raw
+            p = Win32Raw(printer_name)
+            try:
+                _print_escpos(p, content)
+            finally:
+                try:
+                    p.close()
+                except Exception:
+                    pass
 
-        # Header
-        p.set(align="center", bold=True, double_height=True, double_width=True)
-        p.text("NEWSHADES FAMILY SALON\n")
-        p.set(align="center", bold=False, double_height=False, double_width=False)
-        p.text("Look Beautiful, Feel Beautiful\n")
-        p.text("-" * 32 + "\n")
-        p.set(align="center", bold=True)
-        p.text("PAYMENT RECEIPT\n")
-        p.set(bold=False)
-        p.text("-" * 32 + "\n")
-
-        # Bill info
-        p.set(align="left")
-        p.text(f"Bill No  : {bid}\n")
-        p.text(f"Date     : {b['date'][:10]}\n")
-        p.text(f"Time     : {b['date'][11:16]}\n")
-        p.text(f"Customer : {customer.name if customer else 'Walk-in'}\n")
-        p.text(f"Mobile   : {customer.phone if customer else '-'}\n")
-        p.text("-" * 32 + "\n")
-
-        # Services
-        p.set(bold=True)
-        p.text(f"{'SERVICE':<22}{'AMOUNT':>10}\n")
-        p.set(bold=False)
-        p.text("-" * 32 + "\n")
-
-        subtotal = 0
-        for item in b["items"]:
-            amt = item["service_price"] * item["quantity"]
-            subtotal += amt
-            name = item["service_name"]
-            qty = f" x{item['quantity']}" if item["quantity"] > 1 else ""
-            name_str = (name + qty)[:22]
-            p.text(f"{name_str:<22}{('Rs.' + str(int(amt))):>10}\n")
-
-        p.text("-" * 32 + "\n")
-
-        # Discount
-        if b["discount"] > 0:
-            p.text(f"{'Subtotal':<22}{'Rs.' + str(int(subtotal)):>10}\n")
-            disc_amt = subtotal * b["discount"] / 100
-            p.text(f"{'Discount(' + str(b['discount']) + '%)':<22}{'-Rs.' + str(int(disc_amt)):>10}\n")
-            p.text("-" * 32 + "\n")
-
-        # Total
-        p.set(bold=True, double_height=True)
-        p.text(f"{'TOTAL':<16}{'Rs.' + str(int(b['total'])):>16}\n")
-        p.set(bold=False, double_height=False)
-        p.text("=" * 32 + "\n")
-
-        # Payment
-        p.text(f"Payment  : {b['payment_method']}\n")
-        p.text(f"Status   : Paid\n")
-        p.text("-" * 32 + "\n")
-
-        # Footer
-        p.set(align="center")
-        p.text("Thank You! Visit Again\n")
-        p.text("Newshades Family Salon\n")
-        p.text("Look Beautiful, Feel Beautiful\n")
-        p.text("\n\n")
-
-        # Auto cut
-        p.cut()
+        else:  # macOS / Linux — use CUPS via lp command with raw ESC/POS bytes
+            import subprocess, tempfile
+            from escpos.printer import File as EscFile
+            with tempfile.NamedTemporaryFile(suffix=".bin", delete=False) as tf:
+                tmp_path = tf.name
+            try:
+                p = EscFile(tmp_path)
+                _print_escpos(p, content)
+                p.close()
+                lp_path = shutil.which("lp") or "/usr/bin/lp"
+                subprocess.run(
+                    [lp_path, "-d", printer_name, "-o", "raw", tmp_path],
+                    check=True, timeout=10
+                )
+            finally:
+                try:
+                    os.remove(tmp_path)
+                except OSError:
+                    pass
 
         return jsonify({"success": True})
 
     except ImportError:
-        return jsonify({"error": "escpos not installed. Run INSTALL.bat again."}), 500
+        return jsonify({"error": "python-escpos not installed. Run: pip install python-escpos"}), 500
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -624,34 +722,69 @@ def thermal_print(bid):
 def printer_settings():
     from storage import DATA_DIR
     cfg_file = os.path.join(DATA_DIR, "printer_config.json")
-    saved_printer = ""
-    if os.path.exists(cfg_file):
-        with open(cfg_file) as f:
-            saved_printer = json.load(f).get("printer", "")
-    printers = []
-    try:
-        import win32print
-        printers = [p[2] for p in win32print.EnumPrinters(win32print.PRINTER_ENUM_LOCAL | win32print.PRINTER_ENUM_CONNECTIONS)]
-    except Exception:
-        pass
+    saved_printer = _get_saved_printer()
+    printers, _ = _get_system_printers()
     if request.method == "POST":
         selected = request.form.get("printer", "").strip()
         with open(cfg_file, "w") as f:
             json.dump({"printer": selected}, f)
-        flash(f"Printer set to: {selected}", "success")
+        flash(f"Printer set to: {selected or 'None'}", "success")
         return redirect(url_for("printer_settings"))
     return render_template("printer_settings.html", printers=printers, saved_printer=saved_printer)
 
 @app.route("/printers")
 @employee_or_admin_required
 def get_printers():
+    printers, default = _get_system_printers()
+    return jsonify({"printers": printers, "default": default})
+
+@app.route("/printer/test", methods=["POST"])
+@employee_or_admin_required
+def printer_test():
+    printer_name = _get_saved_printer()
+    if not printer_name:
+        return jsonify({"error": "no_printer"})
     try:
-        import win32print
-        printers = [p[2] for p in win32print.EnumPrinters(win32print.PRINTER_ENUM_LOCAL | win32print.PRINTER_ENUM_CONNECTIONS)]
-        default = win32print.GetDefaultPrinter()
-        return jsonify({"printers": printers, "default": default})
-    except Exception:
-        return jsonify({"printers": [], "default": ""})
+        content = [
+            ("center_bold", "NEWSHADES FAMILY SALON"),
+            ("center", "--- TEST PRINT ---"),
+            ("left",  "Printer is working!"),
+            ("left",  "All systems OK."),
+            ("divider", "-"),
+            ("center", "Newshades Family Salon"),
+            ("feed", ""),
+        ]
+        system = platform.system()
+        if system == "Windows":
+            from escpos.printer import Win32Raw
+            p = Win32Raw(printer_name)
+            try:
+                _print_escpos(p, content)
+            finally:
+                try:
+                    p.close()
+                except Exception:
+                    pass
+        else:
+            import subprocess, tempfile
+            from escpos.printer import File as EscFile
+            with tempfile.NamedTemporaryFile(suffix=".bin", delete=False) as tf:
+                tmp_path = tf.name
+            try:
+                p = EscFile(tmp_path)
+                _print_escpos(p, content)
+                p.close()
+                lp_path = shutil.which("lp") or "/usr/bin/lp"
+                subprocess.run([lp_path, "-d", printer_name, "-o", "raw", tmp_path],
+                               check=True, timeout=10)
+            finally:
+                try: os.remove(tmp_path)
+                except OSError: pass
+        return jsonify({"success": True})
+    except ImportError:
+        return jsonify({"error": "python-escpos not installed. Run: pip install python-escpos"})
+    except Exception as e:
+        return jsonify({"error": str(e)})
 
 @app.route("/clear-data", methods=["POST"])
 @admin_required
@@ -665,7 +798,7 @@ def clear_data():
 @app.route("/report", methods=["GET", "POST"])
 @admin_required
 def report():
-    date_str = request.form.get("date", datetime.now().strftime("%Y-%m-%d")) if request.method == "POST" else datetime.now().strftime("%Y-%m-%d")
+    date_str = request.form.get("date", datetime.now().astimezone().strftime("%Y-%m-%d")) if request.method == "POST" else datetime.now().astimezone().strftime("%Y-%m-%d")
     bills = get_bills_by_date(date_str)
     revenue = sum(b["total"] for b in bills.values())
     payment_summary = {}
@@ -677,4 +810,5 @@ def report():
 
 if __name__ == "__main__":
     debug = os.environ.get("FLASK_DEBUG", "0") == "1"
-    app.run(host="127.0.0.1", debug=debug, port=8080)
+    host = os.environ.get("HOST", "0.0.0.0")  # 0.0.0.0 = accessible on local network
+    app.run(host=host, debug=debug, port=8080)

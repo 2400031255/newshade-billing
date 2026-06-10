@@ -25,4 +25,6 @@ def open_browser():
 threading.Thread(target=open_browser, daemon=True).start()
 
 from app import app
-app.run(host="0.0.0.0", port=8080, debug=False, use_reloader=False)
+
+if __name__ == "__main__" or getattr(sys, 'frozen', False):
+    app.run(host="0.0.0.0", port=8080, debug=False, use_reloader=False)

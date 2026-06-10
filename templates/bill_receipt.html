@@ -4,15 +4,15 @@
 <div class="receipt-page">
 
   <div class="receipt-actions no-print">
-    <button onclick="window.print()" class="btn-print">🖨 Browser Print</button>
-    <button onclick="thermalPrint()" class="btn-thermal">⚡ Direct Print (Auto-Cut)</button>
+    <button onclick="window.print()" class="btn-print">🖨 Print Bill</button>
+    <button onclick="thermalPrint(event)" class="btn-thermal">⚡ Direct Print (PC only)</button>
     <a href="/bill/new" class="btn-new no-print">+ New Bill</a>
   </div>
 
   <!-- Printer selector (hidden by default) -->
   <div id="printerBox" class="printer-box no-print" style="display:none">
     <select id="printerSelect"><option>Loading printers...</option></select>
-    <button onclick="confirmPrint()" class="btn-print">Print Now</button>
+    <button onclick="confirmPrint(event)" class="btn-print">Print Now</button>
     <button onclick="document.getElementById('printerBox').style.display='none'" class="btn-new">Cancel</button>
   </div>
 
@@ -270,51 +270,82 @@
   }
   .t-bill-mini { font-size: 9px; color: #888; letter-spacing: 2px; }
 
-  /* Print styles */
+  /* Print styles — 80mm thermal paper, works from any device */
   @media print {
+    /* Hide everything except receipt */
     body * { visibility: hidden; }
     .thermal-receipt, .thermal-receipt * { visibility: visible; }
-    .thermal-receipt {
-      position: fixed; top: 0; left: 50%;
-      transform: translateX(-50%);
-      width: 80mm;
-      clip-path: none;
-      box-shadow: none;
-      padding: 4mm 4mm 8mm;
-      font-size: 11px;
+
+    /* Reset page to 80mm thermal roll */
+    @page {
+      size: 80mm auto;
+      margin: 0;
     }
-    .t-logo img { filter: grayscale(100%) contrast(1.4); }
-    .no-print { display: none !important; }
+
+    body {
+      background: #fff !important;
+      margin: 0; padding: 0;
+    }
+
+    .thermal-receipt {
+      position: fixed;
+      top: 0; left: 0;
+      width: 80mm;
+      clip-path: none !important;
+      box-shadow: none !important;
+      filter: none !important;
+      padding: 4mm 3mm 10mm;
+      font-size: 10px;
+      color: #000 !important;
+      background: #fff !important;
+    }
+
+    /* Force black for printing */
+    .t-salon-name, .t-receipt-title, .t-grand { color: #000 !important; }
+    .t-tagline, .t-dots, .t-footer-sub { color: #333 !important; }
+    .t-logo img { filter: grayscale(100%) contrast(1.5) !important; }
+
+    /* Hide action buttons */
+    .no-print, .receipt-actions, .printer-box { display: none !important; }
   }
 </style>
 
 <script>
   const BID = "{{ bill_id }}";
 
-  function thermalPrint() {
+  function thermalPrint(event) {
     const btn = event.target;
     btn.textContent = 'Printing...';
     btn.disabled = true;
 
-    fetch(`/bill/${BID}/thermal`, { method: 'POST', body: new FormData() })
+    const fd0 = new FormData(); fd0.append('_csrf_token', window.csrfToken);
+    fetch(`/bill/${BID}/thermal`, { method: 'POST', body: fd0 })
       .then(r => r.json())
       .then(data => {
         if (data.success) {
           btn.textContent = '\u2713 Printed!';
           setTimeout(() => { btn.textContent = '\u26a1 Direct Print (Auto-Cut)'; btn.disabled = false; }, 2000);
-        } else if (data.error && data.error.includes('not found')) {
-          // No saved printer - show selector
+        } else if (data.error === 'no_printer') {
+          // No printer configured — show selector or fallback to browser
           btn.textContent = '\u26a1 Direct Print (Auto-Cut)';
           btn.disabled = false;
           showPrinterSelector();
         } else {
-          alert('Print failed: ' + data.error);
-          btn.textContent = '\u26a1 Direct Print (Auto-Cut)'; btn.disabled = false;
+          // Thermal print failed — offer browser print fallback
+          if (confirm(data.error + '\n\nUse browser print instead?')) {
+            window.print();
+          }
+          btn.textContent = '\u26a1 Direct Print (Auto-Cut)';
+          btn.disabled = false;
         }
       })
       .catch(() => {
-        alert('Connection error. Try Browser Print instead.');
-        btn.textContent = '\u26a1 Direct Print (Auto-Cut)'; btn.disabled = false;
+        // Network error or mobile/iPad — auto-fallback to browser print
+        if (confirm('Direct print not available on this device.\n\nUse browser print instead?')) {
+          window.print();
+        }
+        btn.textContent = '\u26a1 Direct Print (Auto-Cut)';
+        btn.disabled = false;
       });
   }
 
@@ -335,13 +366,14 @@
       });
   }
 
-  function confirmPrint() {
+  function confirmPrint(event) {
     const printer = document.getElementById('printerSelect').value;
     const btn = event.target;
     btn.textContent = 'Printing...';
     btn.disabled = true;
     const fd = new FormData();
     fd.append('printer', printer);
+    fd.append('_csrf_token', window.csrfToken);
     fetch(`/bill/${BID}/thermal`, { method: 'POST', body: fd })
       .then(r => r.json())
       .then(data => {

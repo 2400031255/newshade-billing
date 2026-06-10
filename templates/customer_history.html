@@ -24,6 +24,7 @@
       <td>
         <form method="POST" action="/customers/{{ customer.customer_id }}/history/{{ v.bill_id }}/delete"
               onsubmit="return confirm('Delete this visit record?')">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
           <button type="submit" class="btn btn-sm" style="background:#fde8ec;color:#c0394a;border:1px solid #f5c0c8;">🗑 Delete</button>
         </form>
       </td>

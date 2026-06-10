@@ -39,3 +39,9 @@ class _ServicesProxy(dict):
         return len(get_services())
 
 SERVICES = _ServicesProxy()
+
+def display_services():
+    print(f"\n{'ID':<5} {'Service':<25} {'Price':>8}")
+    print("-" * 42)
+    for sid, svc in get_services().items():
+        print(f"  {sid:<5} {svc.name:<25} ₹{svc.price:>7.2f}")

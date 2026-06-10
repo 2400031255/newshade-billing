@@ -10,7 +10,7 @@ def _safe_id(value: str) -> str:
     return value
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-_render_data = os.environ.get("RENDER_DATA_DIR")
+_render_data = os.environ.get("RENDER_DATA_DIR") or os.environ.get("SALON_DATA_DIR")
 DATA_DIR = _render_data if (_render_data and os.access(os.path.dirname(_render_data) or '/', os.W_OK)) else os.path.join(BASE_DIR, "data")
 CUSTOMERS_FILE = os.path.join(DATA_DIR, "customers.json")
 BILLS_FILE     = os.path.join(DATA_DIR, "bills.json")
@@ -18,19 +18,33 @@ SERVICES_FILE  = os.path.join(DATA_DIR, "services.json")
 
 # ── MongoDB setup ───────────────────────────────────────────────────────────
 MONGO_URI = os.environ.get("MONGO_URI")
-_db = None
+
+class _MongoState:
+    db = None
+    client = None
 
 def _get_db():
-    global _db
-    if _db is None and MONGO_URI:
+    if _MongoState.db is None and MONGO_URI:
+        client = None
         try:
             from pymongo import MongoClient
             client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=3000)
             client.server_info()
-            _db = client["newshades"]
+            _MongoState.client = client
+            _MongoState.db = client["newshades"]
         except Exception:
-            _db = None
-    return _db
+            if client:
+                client.close()
+            _MongoState.db = None
+    return _MongoState.db
+
+def close_db():
+    if _MongoState.client:
+        try:
+            _MongoState.client.close()
+        finally:
+            _MongoState.client = None
+            _MongoState.db = None
 
 def _use_mongo():
     return _get_db() is not None
