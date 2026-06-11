@@ -339,6 +339,110 @@
 </div>
 
 <script>
+  /* ── Sound Engine (Web Audio API — no files needed) ── */
+  const SFX = (function(){
+    let ctx = null;
+    function _ctx(){
+      if(!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+      return ctx;
+    }
+    /* Deep cinematic low boom */
+    function boom(){
+      try {
+        const c = _ctx();
+        const o = c.createOscillator();
+        const g = c.createGain();
+        const f = c.createBiquadFilter();
+        f.type = 'lowpass'; f.frequency.value = 120;
+        o.type = 'sine';
+        o.frequency.setValueAtTime(55, c.currentTime);
+        o.frequency.exponentialRampToValueAtTime(28, c.currentTime + 1.2);
+        g.gain.setValueAtTime(0.0, c.currentTime);
+        g.gain.linearRampToValueAtTime(0.35, c.currentTime + 0.08);
+        g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 1.4);
+        o.connect(f); f.connect(g); g.connect(c.destination);
+        o.start(c.currentTime); o.stop(c.currentTime + 1.5);
+      } catch(e){}
+    }
+    /* Crystal bell chime — logo pop */
+    function chime(){
+      try {
+        const c = _ctx();
+        const notes = [1046, 1318, 1568, 2093];
+        notes.forEach((freq, i) => {
+          const o = c.createOscillator();
+          const g = c.createGain();
+          o.type = 'sine';
+          o.frequency.value = freq;
+          const t = c.currentTime + i * 0.06;
+          g.gain.setValueAtTime(0, t);
+          g.gain.linearRampToValueAtTime(0.18, t + 0.01);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 1.2);
+          o.connect(g); g.connect(c.destination);
+          o.start(t); o.stop(t + 1.3);
+        });
+      } catch(e){}
+    }
+    /* Sparkle shimmer — burst of high tinkles */
+    function sparkle(){
+      try {
+        const c = _ctx();
+        for(let i = 0; i < 8; i++){
+          const o = c.createOscillator();
+          const g = c.createGain();
+          o.type = 'triangle';
+          o.frequency.value = 1800 + Math.random() * 2400;
+          const t = c.currentTime + Math.random() * 0.3;
+          g.gain.setValueAtTime(0, t);
+          g.gain.linearRampToValueAtTime(0.09, t + 0.01);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+          o.connect(g); g.connect(c.destination);
+          o.start(t); o.stop(t + 0.6);
+        }
+      } catch(e){}
+    }
+    /* Soft whoosh — transition */
+    function whoosh(){
+      try {
+        const c = _ctx();
+        const bufSize = c.sampleRate * 0.6;
+        const buf = c.createBuffer(1, bufSize, c.sampleRate);
+        const data = buf.getChannelData(0);
+        for(let i = 0; i < bufSize; i++) data[i] = (Math.random()*2-1);
+        const src = c.createBufferSource();
+        src.buffer = buf;
+        const f = c.createBiquadFilter();
+        f.type = 'bandpass';
+        f.frequency.setValueAtTime(300, c.currentTime);
+        f.frequency.exponentialRampToValueAtTime(3000, c.currentTime + 0.5);
+        f.Q.value = 0.8;
+        const g = c.createGain();
+        g.gain.setValueAtTime(0.0, c.currentTime);
+        g.gain.linearRampToValueAtTime(0.12, c.currentTime + 0.1);
+        g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.55);
+        src.connect(f); f.connect(g); g.connect(c.destination);
+        src.start(); src.stop(c.currentTime + 0.65);
+      } catch(e){}
+    }
+    /* Gentle rise tone — text reveal */
+    function rise(){
+      try {
+        const c = _ctx();
+        const o = c.createOscillator();
+        const g = c.createGain();
+        o.type = 'sine';
+        o.frequency.setValueAtTime(440, c.currentTime);
+        o.frequency.exponentialRampToValueAtTime(880, c.currentTime + 0.4);
+        g.gain.setValueAtTime(0, c.currentTime);
+        g.gain.linearRampToValueAtTime(0.07, c.currentTime + 0.05);
+        g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.5);
+        o.connect(g); g.connect(c.destination);
+        o.start(c.currentTime); o.stop(c.currentTime + 0.55);
+      } catch(e){}
+    }
+    return { boom, chime, sparkle, whoosh, rise };
+  })();
+
   /* ── role switcher ── */
   function pick(r){
     document.querySelectorAll('.rc').forEach(c=>c.classList.remove('on'));
@@ -407,8 +511,9 @@
 
     const tl = gsap.timeline();
 
-    /* 0.0 — orb pulses in */
+    /* 0.0 — orb pulses in + deep boom */
     tl.to(orb, { opacity:1, scale:1.2, duration:1.2, ease:'power2.out' }, 0);
+    tl.add(() => SFX.boom(), 0.1);
 
     /* 0.3 — rings expand in */
     tl.to(['#r1','#r2','#r3','#r4'], {
@@ -422,28 +527,30 @@
     tl.fromTo('#sl2', { scaleX:0, opacity:0, transformOrigin:'right center' },
       { scaleX:1, opacity:1, duration:0.6, ease:'power2.out' }, 0.7);
 
-    /* 1.0 — logo pops in from center with spring */
+    /* 1.0 — logo pops in + crystal chime */
     tl.to(logo, {
       scale:1, opacity:1,
       duration:0.9, ease:'back.out(1.8)'
     }, 1.0);
+    tl.add(() => SFX.chime(), 1.0);
 
-    /* 1.6 — neon glow pulse x2 */
+    /* 1.6 — neon glow pulse */
     tl.to(logo, {
       boxShadow: '0 0 0 14px rgba(200,0,255,0.15), 0 0 100px rgba(200,0,255,1), 0 0 220px rgba(200,0,255,0.45)',
       duration:0.4, yoyo:true, repeat:3, ease:'power2.inOut'
     }, 1.6);
 
-    /* 1.8 — sparkle burst */
-    tl.add(()=> burst(), 1.8);
+    /* 1.8 — sparkle burst + sparkle sound */
+    tl.add(() => { burst(); SFX.sparkle(); }, 1.8);
 
-    /* 2.2 — logo slight rotate (premium feel) */
+    /* 2.2 — logo slight rotate */
     tl.to(logo, { rotation:3, duration:0.3, ease:'power1.inOut', yoyo:true, repeat:1 }, 2.2);
 
-    /* 2.5 — name fades up */
+    /* 2.5 — name fades up + rise tone */
     tl.fromTo(name,
       { opacity:0, y:20 },
       { opacity:1, y:0, duration:0.7, ease:'power2.out' }, 2.5);
+    tl.add(() => SFX.rise(), 2.5);
 
     /* 2.8 — gold line expands */
     tl.fromTo(line,
@@ -459,8 +566,8 @@
     tl.to(barWrap, { opacity:1, duration:0.4 }, 3.2);
     tl.to(barFill, { width:'100%', duration:1.4, ease:'power1.inOut' }, 3.3);
 
-    /* 4.8 — fly to login */
-    tl.add(()=> flyToLogin(), 4.8);
+    /* 4.8 — fly to login + whoosh */
+    tl.add(() => { SFX.whoosh(); flyToLogin(); }, 4.8);
 
     /* ── sparkle burst ── */
     function burst(){
