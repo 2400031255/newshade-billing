@@ -254,7 +254,7 @@
   .ds-bg-icon svg { width:72px; height:72px; stroke:#fff; }
 
   /* Grid */
-  .dash-grid { display:grid; grid-template-columns:1fr 340px; gap:20px; }
+  .dash-grid { display:grid; grid-template-columns:1fr 320px; gap:20px; }
   .dash-right-col { display:flex; flex-direction:column; gap:20px; }
 
   /* Cards */
@@ -331,8 +331,16 @@
     to   { opacity:1; }
   }
 
-  @media(max-width:900px) {
+  @media(max-width:1024px) {
     .dash-grid { grid-template-columns:1fr; }
+    .dash-stats { grid-template-columns:repeat(2,1fr); }
+    .quick-grid { grid-template-columns:repeat(4,1fr); }
+  }
+  @media(max-width:600px) {
+    .dash-stats { grid-template-columns:1fr 1fr; }
+    .quick-grid { grid-template-columns:repeat(3,1fr); }
+    .dash-card { padding:14px; }
+    .ds-value { font-size:20px; }
   }
 </style>
 
