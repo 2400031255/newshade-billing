@@ -91,12 +91,13 @@
     #intro-name {
       position:absolute;
       top:50%; left:50%; transform:translate(-50%,-50%);
-      margin-top:130px; /* below logo center */
+      margin-top:130px;
       font-family:'Playfair Display',serif;
       font-size:32px; font-weight:700;
       color:#fff; text-align:center;
       line-height:1.2; white-space:nowrap;
       opacity:0;
+      width:90%; max-width:340px;
     }
     #intro-name em { font-style:italic; color:rgba(201,169,110,0.95); }
 
@@ -104,10 +105,12 @@
       position:absolute;
       top:50%; left:50%; transform:translate(-50%,-50%);
       margin-top:185px;
-      font-size:10px; letter-spacing:7px; text-transform:uppercase;
+      font-size:10px; letter-spacing:5px; text-transform:uppercase;
       color:rgba(200,0,255,0.75);
       white-space:nowrap;
       opacity:0;
+      text-align:center;
+      width:90%;
     }
 
     /* gold separator line */
@@ -237,8 +240,9 @@
       #main-app{flex-direction:column;overflow-y:auto;}
       .lp,.rp{width:100%;height:auto;padding:40px 28px;}
       .s-name{font-size:28px;} .stats{gap:16px;}
-      #intro-name{font-size:24px;white-space:normal;text-align:center;width:260px;margin-left:-130px;}
-      #intro-tag{white-space:normal;}
+      #intro-name{font-size:22px;white-space:normal;}
+      #intro-tag{white-space:normal;letter-spacing:4px;}
+      #intro-bar-wrap{width:140px;}
     }
   </style>
 </head>
@@ -382,13 +386,22 @@
 
     /* place logo at exact viewport center */
     const vw = window.innerWidth, vh = window.innerHeight;
-    const lw = 180, lh = 180;
+    const isMobile = vw < 768;
+    const lw = isMobile ? 140 : 180;
+    const lh = isMobile ? 140 : 180;
     gsap.set(logo, {
+      width: lw, height: lh,
       left: (vw - lw) / 2,
       top:  (vh - lh) / 2,
       scale: 0, opacity: 0,
       transformOrigin: 'center center'
     });
+    /* adjust text offsets for mobile */
+    if (isMobile) {
+      name.style.marginTop = '100px';
+      line.style.marginTop = '148px';
+      tag.style.marginTop  = '160px';
+    }
 
     llWrap.style.opacity = '0';
 
@@ -435,7 +448,7 @@
     /* 2.8 — gold line expands */
     tl.fromTo(line,
       { opacity:0, width:0 },
-      { opacity:1, width:180, duration:0.5, ease:'power2.out' }, 2.8);
+      { opacity:1, width: isMobile ? 140 : 180, duration:0.5, ease:'power2.out' }, 2.8);
 
     /* 3.0 — tagline */
     tl.fromTo(tag,
