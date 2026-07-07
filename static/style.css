@@ -1,4 +1,26 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* Disable text selection everywhere except inputs */
+body, nav, .sidebar, .dash-stat-card, .dash-card, .dash-table,
+.quick-btn, .svc-card, .sv-table, .data-table, .page-title,
+.dash-card-header, .ds-label, .ds-value, .pay-badge, .sb-name,
+.service-bar-row, .pay-row, .stat-card, .clock-banner,
+.btn, .btn-sm, .btn-primary, .btn-secondary, .btn-new-bill,
+nav a, .role-badge, .logout-btn, .brand, .sidebar-footer {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Allow selection only in inputs, textareas, and content that needs it */
+input, textarea, select, .allow-select {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+
 body { font-family: 'Segoe UI', sans-serif; display: flex; min-height: 100vh; background: #f5f5f5; color: #333; }
 
 /* Sidebar */
